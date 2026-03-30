@@ -10,7 +10,7 @@ import type { PreparedItem } from './prepare.js'
 
 export type LayoutResult = {
   height: number
-  childHeights: number[]
+  childHeights: (number | null)[] // null = child was absent (conditional skipped)
 }
 
 export function layoutItem(
@@ -19,7 +19,7 @@ export function layoutItem(
   schema: Schema,
 ): number {
   const [pt, pr, pb, pl] = schema.padding
-  const contentWidth = containerWidth - pl - pr
+  const contentWidth = Math.max(0, containerWidth - pl - pr)
 
   let height = pt
   let visibleCount = 0
@@ -43,16 +43,16 @@ export function layoutItemDetailed(
   schema: Schema,
 ): LayoutResult {
   const [pt, pr, pb, pl] = schema.padding
-  const contentWidth = containerWidth - pl - pr
+  const contentWidth = Math.max(0, containerWidth - pl - pr)
 
   let height = pt
   let visibleCount = 0
-  const childHeights: number[] = []
+  const childHeights: (number | null)[] = []
 
   for (const child of schema.children) {
     const childHeight = layoutChild(child, prepared, contentWidth)
     if (childHeight === null) {
-      childHeights.push(0)
+      childHeights.push(null)
       continue
     }
 
@@ -83,7 +83,7 @@ function layoutChild(
 
     case 'group': {
       const [pt, pr, pb, pl] = child.padding
-      const innerWidth = contentWidth - pl - pr
+      const innerWidth = Math.max(0, contentWidth - pl - pr)
       let h = pt
       let visibleCount = 0
       for (const grandchild of child.children) {

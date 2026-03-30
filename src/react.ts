@@ -4,8 +4,11 @@
 //   - Re-prepares only when items or schema change
 //   - Re-layouts only when containerWidth changes
 //   - Returns getItemHeight(index) — O(1) lookup into cached heights
+//
+// IMPORTANT: `schema` must be a stable reference (module-level constant or
+// wrapped in useMemo). Inline `schema({...})` in render will defeat memoization.
 
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useCallback } from 'react'
 import type { Schema } from './schema.js'
 import { prepareItem, type PreparedItem } from './prepare.js'
 import { layoutItem } from './layout.js'
@@ -16,11 +19,19 @@ export type PrelayoutResult = {
   totalHeight: number
 }
 
+function schemaKey(s: Schema): string {
+  return JSON.stringify(s)
+}
+
 export function usePrelayout(
   items: Record<string, unknown>[],
   schema: Schema,
   containerWidth: number,
 ): PrelayoutResult {
+  // Stabilize schema by value so inline `schema({...})` doesn't bust caches.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableSchema = useMemo(() => schema, [schemaKey(schema)])
+
   // Track previous items to do incremental prepare.
   // Only re-prepare items that actually changed.
   const cacheRef = useRef<{
@@ -37,27 +48,28 @@ export function usePrelayout(
       if (i < prev.items.length && prev.items[i] === items[i]) {
         next[i] = prev.prepared[i]!
       } else {
-        next[i] = prepareItem(items[i]!, schema)
+        next[i] = prepareItem(items[i]!, stableSchema)
       }
     }
 
     cacheRef.current = { items, prepared: next }
     return next
-  }, [items, schema])
+  }, [items, stableSchema])
 
   const { heights, totalHeight } = useMemo(() => {
     const h = new Array<number>(prepared.length)
     let total = 0
     for (let i = 0; i < prepared.length; i++) {
-      h[i] = layoutItem(prepared[i]!, containerWidth, schema)
+      h[i] = layoutItem(prepared[i]!, containerWidth, stableSchema)
       total += h[i]!
     }
     return { heights: h, totalHeight: total }
-  }, [prepared, containerWidth, schema])
+  }, [prepared, containerWidth, stableSchema])
 
-  const getItemHeight = useMemo(() => {
-    return (index: number): number => heights[index] ?? 0
-  }, [heights])
+  const getItemHeight = useCallback(
+    (index: number): number => heights[index] ?? 0,
+    [heights],
+  )
 
   return { getItemHeight, heights, totalHeight }
 }

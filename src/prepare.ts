@@ -50,7 +50,9 @@ function prepareChild(
       break
     }
     case 'conditional': {
-      prepareChild(child.child, data, textFields)
+      if (data[child.field]) {
+        prepareChild(child.child, data, textFields)
+      }
       break
     }
     case 'fixed':

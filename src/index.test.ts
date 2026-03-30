@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { schema, fixed, text, conditional, layoutItem, layoutItemDetailed } from './index.js'
+import { schema, fixed, text, group, conditional, layoutItem, layoutItemDetailed } from './index.js'
 import type { PreparedItem } from './index.js'
 
 // Unit tests for the pure-arithmetic layout phase.
@@ -92,5 +92,36 @@ describe('layoutItemDetailed', () => {
     const result = layoutItemDetailed(prepared, 320, s)
     expect(result.height).toBe(10 + 30 + 4 + 20 + 10)
     expect(result.childHeights).toEqual([30, 20])
+  })
+
+  test('returns null for skipped conditional children', () => {
+    const s = schema({
+      padding: 10,
+      gap: 8,
+      children: [fixed(20), conditional('image', fixed(200)), fixed(24)],
+    })
+    const prepared = mockPreparedItem({ image: null })
+    const result = layoutItemDetailed(prepared, 320, s)
+    expect(result.height).toBe(10 + 20 + 8 + 24 + 10)
+    expect(result.childHeights).toEqual([20, null, 24])
+  })
+})
+
+describe('edge cases', () => {
+  test('zero container width does not produce negative heights', () => {
+    const s = schema({ padding: [10, 20, 10, 20], gap: 8, children: [fixed(30)] })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 0, s)
+    expect(height).toBe(10 + 30 + 10)
+  })
+
+  test('group with padding', () => {
+    const s = schema({
+      padding: 0,
+      children: [group({ padding: [8, 12, 8, 12], children: [fixed(20)] })],
+    })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 320, s)
+    expect(height).toBe(8 + 20 + 8)
   })
 })
