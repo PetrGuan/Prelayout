@@ -78,7 +78,9 @@ function layoutChild(
     case 'text': {
       const preparedText = prepared.textFields.get(child.field)
       if (preparedText === undefined) return null
-      return layout(preparedText, contentWidth, child.lineHeight).height
+      const result = layout(preparedText, contentWidth, child.lineHeight)
+      const lines = child.maxLines !== null ? Math.min(result.lineCount, child.maxLines) : result.lineCount
+      return lines * child.lineHeight
     }
 
     case 'group': {

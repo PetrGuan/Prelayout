@@ -18,7 +18,7 @@ describe('schema builders', () => {
 
   test('text creates a text child', () => {
     const child = text('body', { font: '16px Inter', lineHeight: 22 })
-    expect(child).toEqual({ type: 'text', field: 'body', font: '16px Inter', lineHeight: 22 })
+    expect(child).toEqual({ type: 'text', field: 'body', font: '16px Inter', lineHeight: 22, maxLines: null })
   })
 
   test('conditional creates a conditional child', () => {
@@ -123,5 +123,15 @@ describe('edge cases', () => {
     const prepared = mockPreparedItem()
     const height = layoutItem(prepared, 320, s)
     expect(height).toBe(8 + 20 + 8)
+  })
+
+  test('text with maxLines creates correct schema', () => {
+    const child = text('body', { font: '16px Inter', lineHeight: 22, maxLines: 3 })
+    expect(child.maxLines).toBe(3)
+  })
+
+  test('text without maxLines defaults to null', () => {
+    const child = text('body', { font: '16px Inter', lineHeight: 22 })
+    expect(child.maxLines).toBeNull()
   })
 })

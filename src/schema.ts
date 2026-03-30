@@ -19,6 +19,7 @@ export type TextChild = {
   field: string
   font: string
   lineHeight: number
+  maxLines: number | null
 }
 
 export type GroupChild = {
@@ -60,8 +61,8 @@ export function fixed(height: number): FixedChild {
   return { type: 'fixed', height }
 }
 
-export function text(field: string, options: { font: string; lineHeight: number }): TextChild {
-  return { type: 'text', field, font: options.font, lineHeight: options.lineHeight }
+export function text(field: string, options: { font: string; lineHeight: number; maxLines?: number }): TextChild {
+  return { type: 'text', field, font: options.font, lineHeight: options.lineHeight, maxLines: options.maxLines ?? null }
 }
 
 export function group(options: { padding?: Padding; gap?: number; children: SchemaChild[] }): GroupChild {
