@@ -1,0 +1,90 @@
+// Layout phase: pure arithmetic height calculation.
+//
+// Given a PreparedItem and a container width, walks the schema and sums up
+// child heights with padding and gaps. Text children are laid out via
+// Pretext's layout() — no DOM reads, no canvas calls, no string work.
+
+import { layout } from '@chenglou/pretext'
+import type { Schema, SchemaChild } from './schema.js'
+import type { PreparedItem } from './prepare.js'
+
+export type LayoutResult = {
+  height: number
+  childHeights: number[]
+}
+
+export function layoutItem(
+  prepared: PreparedItem,
+  containerWidth: number,
+  schema: Schema,
+): number {
+  const [pt, pr, pb, pl] = schema.padding
+  const contentWidth = containerWidth - pl - pr
+
+  let height = pt
+  let visibleCount = 0
+
+  for (const child of schema.children) {
+    const childHeight = layoutChild(child, prepared, contentWidth)
+    if (childHeight === null) continue
+
+    if (visibleCount > 0) height += schema.gap
+    height += childHeight
+    visibleCount++
+  }
+
+  height += pb
+  return height
+}
+
+export function layoutItemDetailed(
+  prepared: PreparedItem,
+  containerWidth: number,
+  schema: Schema,
+): LayoutResult {
+  const [pt, pr, pb, pl] = schema.padding
+  const contentWidth = containerWidth - pl - pr
+
+  let height = pt
+  let visibleCount = 0
+  const childHeights: number[] = []
+
+  for (const child of schema.children) {
+    const childHeight = layoutChild(child, prepared, contentWidth)
+    if (childHeight === null) {
+      childHeights.push(0)
+      continue
+    }
+
+    if (visibleCount > 0) height += schema.gap
+    height += childHeight
+    visibleCount++
+    childHeights.push(childHeight)
+  }
+
+  height += pb
+  return { height, childHeights }
+}
+
+function layoutChild(
+  child: SchemaChild,
+  prepared: PreparedItem,
+  contentWidth: number,
+): number | null {
+  switch (child.type) {
+    case 'fixed':
+      return child.height
+
+    case 'text': {
+      const preparedText = prepared.textFields.get(child.field)
+      if (preparedText === undefined) return null
+      return layout(preparedText, contentWidth, child.lineHeight).height
+    }
+
+    case 'conditional': {
+      const value = prepared.data[child.field]
+      if (!value) return null
+      return layoutChild(child.child, prepared, contentWidth)
+    }
+  }
+}

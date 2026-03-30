@@ -1,0 +1,33 @@
+{
+  "name": "prelayout",
+  "version": "0.0.1",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "check": "tsc",
+    "test": "bun test"
+  },
+  "peerDependencies": {
+    "@chenglou/pretext": ">=0.0.3"
+  },
+  "devDependencies": {
+    "@chenglou/pretext": "^0.0.3",
+    "@types/bun": "latest",
+    "typescript": "6.0.2"
+  }
+}
