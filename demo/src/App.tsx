@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { schema, fixed, text, conditional } from 'prelayout'
+import { schema, fixed, text, group, conditional } from 'prelayout'
 import { usePrelayout } from 'prelayout/react'
 import { generateComments, type CommentItem } from './data'
 
@@ -11,12 +11,15 @@ const QUOTE_FONT = '13px Inter, system-ui, sans-serif'
 const QUOTE_LINE_HEIGHT = 18
 
 const commentSchema = schema({
-  padding: [12, 16, 12, 16],
+  padding: [12, 16, 13, 16], // 13 bottom = 12 padding + 1 borderBottom
   gap: 8,
   children: [
     fixed(20),
     text('body', { font: FONT, lineHeight: LINE_HEIGHT }),
-    conditional('quote', text('quote', { font: QUOTE_FONT, lineHeight: QUOTE_LINE_HEIGHT })),
+    conditional('quote', group({
+      padding: [8, 12, 8, 12],
+      children: [text('quote', { font: QUOTE_FONT, lineHeight: QUOTE_LINE_HEIGHT })],
+    })),
     conditional('hasImage', fixed(200)),
     fixed(20),
   ],

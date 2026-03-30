@@ -43,6 +43,12 @@ function prepareChild(
       }
       break
     }
+    case 'group': {
+      for (const grandchild of child.children) {
+        prepareChild(grandchild, data, textFields)
+      }
+      break
+    }
     case 'conditional': {
       prepareChild(child.child, data, textFields)
       break

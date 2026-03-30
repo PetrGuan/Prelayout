@@ -7,8 +7,8 @@
 //   2. prepareItem() measures all text fields via Pretext (one-time cost)
 //   3. layoutItem() computes exact height via pure arithmetic (call on every resize)
 
-export { schema, fixed, text, conditional } from './schema.js'
-export type { Schema, SchemaChild, FixedChild, TextChild, ConditionalChild, Padding } from './schema.js'
+export { schema, fixed, text, group, conditional } from './schema.js'
+export type { Schema, SchemaChild, FixedChild, TextChild, GroupChild, ConditionalChild, Padding } from './schema.js'
 
 export { prepareItem, prepareItems } from './prepare.js'
 export type { PreparedItem } from './prepare.js'

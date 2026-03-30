@@ -81,6 +81,22 @@ function layoutChild(
       return layout(preparedText, contentWidth, child.lineHeight).height
     }
 
+    case 'group': {
+      const [pt, pr, pb, pl] = child.padding
+      const innerWidth = contentWidth - pl - pr
+      let h = pt
+      let visibleCount = 0
+      for (const grandchild of child.children) {
+        const gh = layoutChild(grandchild, prepared, innerWidth)
+        if (gh === null) continue
+        if (visibleCount > 0) h += child.gap
+        h += gh
+        visibleCount++
+      }
+      h += pb
+      return visibleCount > 0 ? h : null
+    }
+
     case 'conditional': {
       const value = prepared.data[child.field]
       if (!value) return null
