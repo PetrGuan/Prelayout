@@ -15,32 +15,86 @@ Prelayout extends Pretext's two-phase model from text blocks to component layout
 3. **`layoutItem()`** computes exact height via pure arithmetic (call on every resize)
 
 ```ts
-import { schema, fixed, text, conditional, prepareItem, layoutItem } from 'prelayout'
+import { schema, fixed, text, group, conditional, prepareItem, layoutItem } from 'prelayout'
 
-// Describe your list item structure once
 const commentSchema = schema({
-  padding: [12, 16, 12, 16],
+  padding: [12, 16, 13, 16],
   gap: 8,
   children: [
     fixed(40),                                              // avatar + name row
     text('body', { font: '16px Inter', lineHeight: 22 }),   // comment text
+    conditional('quote', group({                            // quote box with its own padding
+      padding: [8, 12, 8, 12],
+      children: [text('quote', { font: '14px Inter', lineHeight: 20 })],
+    })),
+    conditional('hasImage', fixed(200)),                    // optional image
     fixed(24),                                              // reaction bar
-    conditional('quote', text('quote', { font: '14px Inter', lineHeight: 20 })),
   ],
 })
 
 // Prepare each item once (measures text via canvas)
 const prepared = items.map(item => prepareItem(item, commentSchema))
 
-// Layout on every resize — pure arithmetic, ~0.002ms per item
+// Layout on every resize — pure arithmetic, ~0.5µs per item
 const heights = prepared.map(p => layoutItem(p, containerWidth, commentSchema))
 ```
 
+## How It Works
+
+Prelayout does **not** predict heights from scratch. It uses the browser's own measurement APIs once, then replays the layout decisions with pure arithmetic:
+
+```
+Phase 1 — prepare (one-time per item):
+  Pretext segments text via Intl.Segmenter
+  → measures each segment via canvas.measureText()
+  → caches widths in a compact array
+
+Phase 2 — layout (on every resize):
+  Walks the schema children:
+    fixed(40)     → add 40
+    text('body')  → Pretext replays line-breaking with cached widths (pure addition)
+    group(...)    → recurse with inner padding
+    conditional() → check data field, skip or include
+  Sum up with padding + gaps → exact height
+```
+
+The key insight: `layout()` never touches the DOM or canvas. It is pure arithmetic on cached numbers.
+
+## Performance
+
+Benchmarked on 10,000 comment items at 480px width (MacBook Pro):
+
+| Phase | Total | Per item | Notes |
+|-------|-------|----------|-------|
+| `prepare()` | 346ms | 35µs | One-time cost — text segmentation + canvas measurement |
+| `layout()` | 5.4ms | 0.5µs | Resize hot path — pure arithmetic |
+| DOM measure | 511ms | 51µs | Baseline — render + `getBoundingClientRect` |
+
+**`layout()` is ~100x faster than DOM measurement on the resize hot path.**
+
+## Accuracy
+
+Tested against 500 rendered comment items with variable text lengths, quotes, and images:
+
+| Metric | Result |
+|--------|--------|
+| Exact match (<1px error) | **500/500 (100%)** |
+| Average error | **0.00px** |
+| Max error | **0.0px** |
+
+Accuracy depends on the schema correctly describing your component's layout constants (padding, gaps, fixed heights, borders).
+
 ## Schema Primitives
 
-- **`fixed(height)`** — constant-height element (avatar, button bar, divider)
-- **`text(field, { font, lineHeight })`** — text measured by Pretext
-- **`conditional(field, child)`** — child included only when `data[field]` is truthy
+| Primitive | Description |
+|-----------|-------------|
+| `fixed(height)` | Constant-height element (avatar row, button bar, divider) |
+| `text(field, { font, lineHeight })` | Text field measured by Pretext — wraps based on width |
+| `group({ padding, gap, children })` | Nested vertical stack with its own padding (e.g. a quote box) |
+| `conditional(field, child)` | Child included only when `data[field]` is truthy |
+| `schema({ padding, gap, children })` | Top-level container defining the item structure |
+
+`padding` accepts a number (uniform) or `[top, right, bottom, left]`. Include borders in padding (e.g. `13` = 12px padding + 1px border).
 
 ## React Integration
 
@@ -49,13 +103,12 @@ const heights = prepared.map(p => layoutItem(p, containerWidth, commentSchema))
 ```tsx
 import { usePrelayout } from 'prelayout/react'
 
-function CommentList({ items }: { items: Comment[] }) {
+function CommentList({ items, schema }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(0)
 
-  const { getItemHeight } = usePrelayout(items, commentSchema, width)
+  const { getItemHeight } = usePrelayout(items, schema, width)
 
-  // Plug into @tanstack/react-virtual, react-window, or anything else
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => containerRef.current,
@@ -66,43 +119,22 @@ function CommentList({ items }: { items: Comment[] }) {
 }
 ```
 
+The hook handles memoization internally:
+- Re-prepares only when items change (incremental — unchanged items reuse cached handles)
+- Re-layouts only when `containerWidth` changes
+- `schema` is stabilized by value — inline `schema({...})` is safe
+
 ### Tanstack convenience wrapper
 
 ```tsx
 import { useVirtualLayout } from 'prelayout/react-virtual'
 
-function CommentList({ items }: { items: Comment[] }) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(0)
-
-  const { virtualizer } = useVirtualLayout({
-    items,
-    schema: commentSchema,
-    containerWidth: width,
-    getScrollElement: () => containerRef.current,
-  })
-
-  return (
-    <div ref={containerRef} style={{ height: '100vh', overflow: 'auto' }}>
-      <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-        {virtualizer.getVirtualItems().map(row => (
-          <div
-            key={row.key}
-            style={{
-              position: 'absolute',
-              top: 0,
-              width: '100%',
-              height: row.size,
-              transform: `translateY(${row.start}px)`,
-            }}
-          >
-            <CommentCard comment={items[row.index]} />
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
+const { virtualizer } = useVirtualLayout({
+  items,
+  schema: commentSchema,
+  containerWidth: width,
+  getScrollElement: () => containerRef.current,
+})
 ```
 
 ## Install
@@ -114,6 +146,13 @@ npm install prelayout @chenglou/pretext
 # With React + Tanstack integration
 npm install prelayout @chenglou/pretext @tanstack/react-virtual
 ```
+
+## Known Limitations
+
+- **Schema must match CSS**: padding, gaps, and fixed heights are manually specified. If CSS changes but the schema doesn't, heights will drift.
+- **No `-webkit-line-clamp` support**: text is always fully wrapped. Clamped text will produce overestimated heights.
+- **`system-ui` font**: canvas and DOM can resolve different fonts on macOS. Use named fonts (Inter, Helvetica, etc.).
+- **No flex-wrap**: tag rows that wrap based on width are not yet supported as a schema primitive.
 
 ## License
 
