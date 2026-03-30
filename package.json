@@ -10,6 +10,16 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js",
+      "default": "./dist/react.js"
+    },
+    "./react-virtual": {
+      "types": "./dist/react-virtual.d.ts",
+      "import": "./dist/react-virtual.js",
+      "default": "./dist/react-virtual.js"
     }
   },
   "files": [
@@ -23,11 +33,24 @@
     "test": "bun test"
   },
   "peerDependencies": {
-    "@chenglou/pretext": ">=0.0.3"
+    "@chenglou/pretext": ">=0.0.3",
+    "@tanstack/react-virtual": ">=3.0.0",
+    "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-virtual": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@chenglou/pretext": "^0.0.3",
+    "@tanstack/react-virtual": "^3.13.9",
     "@types/bun": "latest",
+    "@types/react": "^19.1.2",
+    "react": "^19.1.0",
     "typescript": "6.0.2"
   }
 }

@@ -42,10 +42,77 @@ const heights = prepared.map(p => layoutItem(p, containerWidth, commentSchema))
 - **`text(field, { font, lineHeight })`** — text measured by Pretext
 - **`conditional(field, child)`** — child included only when `data[field]` is truthy
 
+## React Integration
+
+### Core hook — works with any virtualizer
+
+```tsx
+import { usePrelayout } from 'prelayout/react'
+
+function CommentList({ items }: { items: Comment[] }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(0)
+
+  const { getItemHeight } = usePrelayout(items, commentSchema, width)
+
+  // Plug into @tanstack/react-virtual, react-window, or anything else
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: getItemHeight,  // exact — no measureElement needed
+  })
+
+  // ... render virtualizer.getVirtualItems()
+}
+```
+
+### Tanstack convenience wrapper
+
+```tsx
+import { useVirtualLayout } from 'prelayout/react-virtual'
+
+function CommentList({ items }: { items: Comment[] }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(0)
+
+  const { virtualizer } = useVirtualLayout({
+    items,
+    schema: commentSchema,
+    containerWidth: width,
+    getScrollElement: () => containerRef.current,
+  })
+
+  return (
+    <div ref={containerRef} style={{ height: '100vh', overflow: 'auto' }}>
+      <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
+        {virtualizer.getVirtualItems().map(row => (
+          <div
+            key={row.key}
+            style={{
+              position: 'absolute',
+              top: 0,
+              width: '100%',
+              height: row.size,
+              transform: `translateY(${row.start}px)`,
+            }}
+          >
+            <CommentCard comment={items[row.index]} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
 ## Install
 
 ```bash
+# Core only
 npm install prelayout @chenglou/pretext
+
+# With React + Tanstack integration
+npm install prelayout @chenglou/pretext @tanstack/react-virtual
 ```
 
 ## License
