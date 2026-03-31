@@ -205,6 +205,27 @@ const { virtualizer } = useVirtualLayout({
 </script>
 ```
 
+## Svelte
+
+```svelte
+<script>
+  import { computeHeights } from 'prelayout/svelte'
+
+  let items = $state([...])
+  let containerWidth = $state(480)
+
+  // $derived automatically recomputes when items or width change
+  let result = $derived(computeHeights(items, commentSchema, containerWidth))
+
+  // Use with @tanstack/svelte-virtual or any virtual list
+  // result.getItemHeight(index) — returns height for item at index
+  // result.heights — full height array
+  // result.totalHeight — sum of all heights
+</script>
+```
+
+Internally caches PreparedItem handles — unchanged items skip canvas measurement.
+
 ## React Native
 
 Prelayout works in React Native with a custom text measurement function (since RN has no canvas):
@@ -406,6 +427,9 @@ npm install prelayout @chenglou/pretext react-window
 # Vue + Tanstack
 npm install prelayout @chenglou/pretext vue @tanstack/vue-virtual
 
+# Svelte
+npm install prelayout @chenglou/pretext
+
 # React Native
 npm install prelayout react-native-text-size
 ```
@@ -422,6 +446,7 @@ npm install prelayout react-native-text-size
 | `prelayout/ssr` | `serializePrepared()`, `deserializePrepared()`, `precomputeHeights()` |
 | `prelayout/vue` | `usePrelayout()` Vue 3 composable |
 | `prelayout/vue-virtual` | `useVirtualLayout()` for @tanstack/vue-virtual |
+| `prelayout/svelte` | `computeHeights()`, `computeItemHeight()` for Svelte 5 runes |
 | `prelayout/react-native` | `prepareItemRN()`, `prepareItemsRN()`, `layoutItemRN()`, `buildGetItemLayout()` |
 | `prelayout/extract` | `fromCSS`, `fromTailwind` — also re-exported from `prelayout` |
 

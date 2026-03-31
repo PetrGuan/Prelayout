@@ -55,6 +55,11 @@
       "types": "./dist/react-native.d.ts",
       "import": "./dist/react-native.js",
       "default": "./dist/react-native.js"
+    },
+    "./svelte": {
+      "types": "./dist/svelte.d.ts",
+      "import": "./dist/svelte.js",
+      "default": "./dist/svelte.js"
     }
   },
   "files": [
