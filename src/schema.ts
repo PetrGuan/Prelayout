@@ -161,12 +161,17 @@ export function group(options: {
   maxHeight?: number
   children: SchemaChild[]
 }): GroupChild {
+  const minHeight = options.minHeight ?? 0
+  const maxHeight = options.maxHeight ?? null
+  if (minHeight < 0) throw new Error('group minHeight must be >= 0')
+  if (maxHeight !== null && maxHeight < 0) throw new Error('group maxHeight must be >= 0')
+  if (maxHeight !== null && minHeight > maxHeight) throw new Error('group minHeight must be <= maxHeight')
   return {
     type: 'group',
     padding: normalizePadding(options.padding ?? 0),
     gap: options.gap ?? 0,
-    minHeight: options.minHeight ?? 0,
-    maxHeight: options.maxHeight ?? null,
+    minHeight,
+    maxHeight,
     children: options.children,
   }
 }

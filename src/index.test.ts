@@ -158,6 +158,36 @@ describe('edge cases', () => {
     expect(height).toBe(88)
   })
 
+  test('group minHeight with padding — padding dominates when larger', () => {
+    const s = schema({
+      padding: 0,
+      children: [group({ padding: [20, 0, 20, 0], minHeight: 10, children: [] })],
+    })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 320, s)
+    // padding = 40 > minHeight 10, so padding wins
+    expect(height).toBe(40)
+  })
+
+  test('group with both minHeight and maxHeight', () => {
+    const s = schema({
+      padding: 0,
+      children: [group({ minHeight: 50, maxHeight: 200, children: [fixed(30)] })],
+    })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 320, s)
+    // content = 30, clamped to minHeight 50
+    expect(height).toBe(50)
+  })
+
+  test('group minHeight > maxHeight throws', () => {
+    expect(() => group({ minHeight: 100, maxHeight: 50, children: [] })).toThrow()
+  })
+
+  test('group negative minHeight throws', () => {
+    expect(() => group({ minHeight: -10, children: [] })).toThrow()
+  })
+
   test('empty group without minHeight is skipped', () => {
     const s = schema({
       padding: 10,
