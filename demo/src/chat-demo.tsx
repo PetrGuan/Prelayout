@@ -5,7 +5,7 @@
 // for instant scroll positioning — no measureElement needed.
 
 import { createRoot } from 'react-dom/client'
-import { useRef, useState, useEffect, useMemo } from 'react'
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { schema, fixed, text, prepareItem, layoutItem } from 'prelayout'
 
@@ -124,10 +124,16 @@ function App() {
     })
   }, [messages, containerWidth])
 
+  // Use a ref so estimateSize always reads the latest heights
+  const heightsRef = useRef(messageHeights)
+  heightsRef.current = messageHeights
+
+  const estimateSize = useCallback((i: number) => heightsRef.current[i] ?? 50, [])
+
   const virtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: (i) => messageHeights[i] ?? 50,
+    estimateSize,
     overscan: 5,
   })
 
