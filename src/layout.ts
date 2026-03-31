@@ -83,6 +83,29 @@ function layoutChild(
       return lines * child.lineHeight
     }
 
+    case 'flex-wrap': {
+      const itemWidths = prepared.flexFields.get(child.field)
+      if (itemWidths === undefined || itemWidths.length === 0) return null
+      // Greedy row packing — same algorithm as text line breaking
+      let rowCount = 1
+      let rowWidth = 0
+      for (let i = 0; i < itemWidths.length; i++) {
+        const w = itemWidths[i]!
+        if (i === 0) {
+          rowWidth = w
+          continue
+        }
+        const nextWidth = rowWidth + child.columnGap + w
+        if (nextWidth > contentWidth) {
+          rowCount++
+          rowWidth = w
+        } else {
+          rowWidth = nextWidth
+        }
+      }
+      return rowCount * child.itemHeight + Math.max(0, rowCount - 1) * child.rowGap
+    }
+
     case 'group': {
       const [pt, pr, pb, pl] = child.padding
       const innerWidth = Math.max(0, contentWidth - pl - pr)

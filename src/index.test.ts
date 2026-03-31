@@ -1,13 +1,16 @@
 import { describe, expect, test } from 'bun:test'
-import { schema, fixed, text, group, conditional, layoutItem, layoutItemDetailed } from './index.js'
+import { schema, fixed, text, flexWrap, group, conditional, layoutItem, layoutItemDetailed } from './index.js'
 import type { PreparedItem } from './index.js'
 
 // Unit tests for the pure-arithmetic layout phase.
 // These use mock PreparedItems to avoid needing a real canvas context.
 
-function mockPreparedItem(data: Record<string, unknown> = {}): PreparedItem {
+function mockPreparedItem(
+  data: Record<string, unknown> = {},
+  flexFields?: Map<string, number[]>,
+): PreparedItem {
   const textFields = new Map()
-  return { textFields, data }
+  return { textFields, flexFields: flexFields ?? new Map(), data }
 }
 
 describe('schema builders', () => {
@@ -133,5 +136,61 @@ describe('edge cases', () => {
   test('text without maxLines defaults to null', () => {
     const child = text('body', { font: '16px Inter', lineHeight: 22 })
     expect(child.maxLines).toBeNull()
+  })
+})
+
+describe('flexWrap layout', () => {
+  test('all tags fit in one row', () => {
+    // 3 tags of 50px each + 8px gaps = 50 + 8 + 50 + 8 + 50 = 166px, fits in 200px
+    const flex = new Map([['tags', [50, 50, 50]]])
+    const s = schema({
+      padding: 0,
+      children: [flexWrap('tags', { font: '14px Inter', itemHeight: 28, columnGap: 8 })],
+    })
+    const prepared = mockPreparedItem({ tags: ['a', 'b', 'c'] }, flex)
+    const height = layoutItem(prepared, 200, s)
+    expect(height).toBe(28) // 1 row
+  })
+
+  test('tags wrap to multiple rows', () => {
+    // 3 tags of 80px + 8px gaps: 80+8+80 = 168 > 150, so wraps
+    // Row 1: [80, 80] = 168 > 150, so actually [80] then [80] then [80]
+    // Wait: 80 fits, 80+8+80 = 168 > 150, so row 1 = [80], row 2 starts with 80
+    // 80+8+80 = 168 > 150, row 2 = [80], row 3 = [80]
+    const flex = new Map([['tags', [80, 80, 80]]])
+    const s = schema({
+      padding: 0,
+      children: [flexWrap('tags', { font: '14px Inter', itemHeight: 28, rowGap: 4, columnGap: 8 })],
+    })
+    const prepared = mockPreparedItem({ tags: ['a', 'b', 'c'] }, flex)
+    const height = layoutItem(prepared, 150, s)
+    // 3 rows: 28 + 4 + 28 + 4 + 28 = 92
+    expect(height).toBe(92)
+  })
+
+  test('two tags per row', () => {
+    // 4 tags of 60px + 8px gap: 60+8+60 = 128 ≤ 150, but 128+8+60 = 196 > 150
+    // Row 1: [60, 60], Row 2: [60, 60]
+    const flex = new Map([['tags', [60, 60, 60, 60]]])
+    const s = schema({
+      padding: 0,
+      children: [flexWrap('tags', { font: '14px Inter', itemHeight: 28, rowGap: 4, columnGap: 8 })],
+    })
+    const prepared = mockPreparedItem({ tags: ['a', 'b', 'c', 'd'] }, flex)
+    const height = layoutItem(prepared, 150, s)
+    // 2 rows: 28 + 4 + 28 = 60
+    expect(height).toBe(60)
+  })
+
+  test('empty tags array returns null height', () => {
+    const s = schema({
+      padding: 10,
+      gap: 8,
+      children: [fixed(20), flexWrap('tags', { font: '14px Inter', itemHeight: 28 })],
+    })
+    const prepared = mockPreparedItem({ tags: [] })
+    const height = layoutItem(prepared, 300, s)
+    // flexWrap returns null (no tags), so no gap added
+    expect(height).toBe(10 + 20 + 10)
   })
 })

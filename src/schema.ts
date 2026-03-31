@@ -22,6 +22,16 @@ export type TextChild = {
   maxLines: number | null
 }
 
+export type FlexWrapChild = {
+  type: 'flex-wrap'
+  field: string
+  font: string
+  itemHeight: number
+  itemPadding: [number, number] // [horizontal, vertical] padding per item
+  rowGap: number
+  columnGap: number
+}
+
 export type GroupChild = {
   type: 'group'
   padding: [number, number, number, number]
@@ -35,7 +45,7 @@ export type ConditionalChild = {
   child: SchemaChild
 }
 
-export type SchemaChild = FixedChild | TextChild | GroupChild | ConditionalChild
+export type SchemaChild = FixedChild | TextChild | FlexWrapChild | GroupChild | ConditionalChild
 
 export type Schema = {
   padding: [number, number, number, number]
@@ -63,6 +73,26 @@ export function fixed(height: number): FixedChild {
 
 export function text(field: string, options: { font: string; lineHeight: number; maxLines?: number }): TextChild {
   return { type: 'text', field, font: options.font, lineHeight: options.lineHeight, maxLines: options.maxLines ?? null }
+}
+
+export function flexWrap(field: string, options: {
+  font: string
+  itemHeight: number
+  itemPadding?: number | [number, number]
+  rowGap?: number
+  columnGap?: number
+}): FlexWrapChild {
+  const pad = options.itemPadding ?? 0
+  const itemPadding: [number, number] = typeof pad === 'number' ? [pad, pad] : pad
+  return {
+    type: 'flex-wrap',
+    field,
+    font: options.font,
+    itemHeight: options.itemHeight,
+    itemPadding,
+    rowGap: options.rowGap ?? 0,
+    columnGap: options.columnGap ?? 0,
+  }
 }
 
 export function group(options: { padding?: Padding; gap?: number; children: SchemaChild[] }): GroupChild {
