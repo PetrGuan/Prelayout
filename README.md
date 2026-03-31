@@ -2,9 +2,11 @@
 
 Experiments and practical tools built on [Pretext](https://github.com/chenglou/pretext) — exploring what's possible when you can predict text layout without the DOM.
 
-> **What is Pretext?** A library that replicates browser text line-breaking in JavaScript using `canvas.measureText()`. It predicts how text wraps at any width with sub-pixel accuracy, ~100x faster than DOM measurement.
->
-> **What is Prelayout?** A collection of experiments that extend Pretext's idea from text blocks to real-world use cases: virtual list height prediction, truncated tag fitting, accordion animations, masonry layouts, SSR height injection, and more.
+> **Disclaimer:** This project is an experimental exploration built entirely on top of [Pretext](https://github.com/chenglou/pretext) by Cheng Lou. All core text measurement and line-breaking capabilities come from Pretext. Prelayout adds application-layer experiments (schema DSL, framework integrations, SSR prediction, demos) on top of that foundation. It is not a replacement for Pretext, and would not exist without it.
+
+**What is Pretext?** A library that replicates browser text line-breaking in JavaScript using `canvas.measureText()`. It predicts how text wraps at any width with sub-pixel accuracy, ~100x faster than DOM measurement.
+
+**What is Prelayout?** A collection of experiments that extend Pretext's idea from text blocks to real-world use cases: virtual list height prediction, truncated tag fitting, accordion animations, masonry layouts, SSR height injection, and more.
 
 ## Live Demos
 
