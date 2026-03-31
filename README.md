@@ -23,9 +23,9 @@ const commentSchema = schema({
   children: [
     fixed(40),                                              // avatar + name row
     text('body', { font: '16px Inter', lineHeight: 22 }),   // comment text
-    conditional('quote', group({                            // quote box with its own padding
+    conditional('hasQuote', group({                          // quote box with its own padding
       padding: [8, 12, 8, 12],
-      children: [text('quote', { font: '14px Inter', lineHeight: 20 })],
+      children: [text('quoteText', { font: '14px Inter', lineHeight: 20 })],
     })),
     conditional('hasImage', fixed(200)),                    // optional image
     fixed(24),                                              // reaction bar
@@ -160,7 +160,7 @@ The biggest maintenance risk is schema drift — CSS changes but the schema does
 Annotate your component's children with `data-pl` attributes:
 
 ```tsx
-function CommentCard({ item }: { item: Comment }) {
+function CommentCard({ item, rootRef }: { item: Comment; rootRef: React.Ref<HTMLDivElement> }) {
   return (
     <div ref={rootRef}>
       <div data-pl="header">...</div>
@@ -171,23 +171,28 @@ function CommentCard({ item }: { item: Comment }) {
 }
 ```
 
-Then extract the real numbers:
+Then extract the real numbers (e.g. in a `useEffect` or dev-mode button handler):
 
 ```ts
 import { calibrate } from 'prelayout'
 
-const result = calibrate(rootRef.current)
-// {
-//   padding: [12, 16, 12, 16],
-//   gap: 8,
-//   children: [
-//     { name: 'header', height: 40, top: 12 },
-//     { name: 'body', height: 66, top: 60 },
-//     { name: 'actions', height: 24, top: 134 },
-//   ],
-//   containerWidth: 480,
-//   totalHeight: 170,
-// }
+// rootRef.current is guaranteed non-null inside useEffect after mount
+useEffect(() => {
+  if (!rootRef.current) return
+  const result = calibrate(rootRef.current)
+  console.log(result)
+  // {
+  //   padding: [12, 16, 12, 16],
+  //   gap: 8,
+  //   children: [
+  //     { name: 'header', height: 40, top: 12 },
+  //     { name: 'body', height: 66, top: 60 },
+  //     { name: 'actions', height: 24, top: 134 },
+  //   ],
+  //   containerWidth: 480,
+  //   totalHeight: 170,
+  // }
+}, [])
 ```
 
 ### `detectDrift(schema, calibration)` — compare schema against reality

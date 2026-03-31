@@ -9,7 +9,7 @@
 //      </div>
 //
 //   2. Call calibrate(rootRef.current) to extract:
-//      - Container padding (from computed style)
+//      - Container padding (from computed style, including borders)
 //      - Gap between children (from spacing between rects)
 //      - Per-child heights (from getBoundingClientRect)
 //
@@ -36,7 +36,9 @@ export function calibrate(element: HTMLElement): CalibrationResult {
   const pb = parseFloat(style.paddingBottom) || 0
   const pl = parseFloat(style.paddingLeft) || 0
   const bt = parseFloat(style.borderTopWidth) || 0
+  const br = parseFloat(style.borderRightWidth) || 0
   const bb = parseFloat(style.borderBottomWidth) || 0
+  const bl = parseFloat(style.borderLeftWidth) || 0
 
   const rootRect = element.getBoundingClientRect()
   const annotated = element.querySelectorAll<HTMLElement>('[data-pl]')
@@ -74,9 +76,9 @@ export function calibrate(element: HTMLElement): CalibrationResult {
   return {
     padding: [
       Math.round(pt + bt),
-      Math.round(pr),
+      Math.round(pr + br),
       Math.round(pb + bb),
-      Math.round(pl),
+      Math.round(pl + bl),
     ],
     gap,
     children,
@@ -87,8 +89,13 @@ export function calibrate(element: HTMLElement): CalibrationResult {
 
 // Compare a calibration result against a schema and report differences.
 // Useful for detecting drift when CSS changes but the schema wasn't updated.
+//
+// Matching strategy: calibrated children are matched to schema children by
+// their data-pl name. For `fixed` children, the name is matched against the
+// schema child's position label. For `text` and `flex-wrap` children, the
+// name is matched against their `field` property.
 
-import type { Schema } from './schema.js'
+import type { Schema, SchemaChild } from './schema.js'
 
 export type DriftItem = {
   field: string
@@ -102,6 +109,41 @@ export type DriftReport = {
   paddingDrift: DriftItem[]
   gapDrift: DriftItem | null
   childDrift: DriftItem[]
+}
+
+function buildSchemaNameMap(children: SchemaChild[]): Map<string, { type: string; height: number | null }> {
+  const map = new Map<string, { type: string; height: number | null }>()
+  let fixedIndex = 0
+  for (const child of children) {
+    switch (child.type) {
+      case 'fixed':
+        // Fixed children don't have a field name, so use positional label
+        map.set(`fixed:${fixedIndex}`, { type: 'fixed', height: child.height })
+        fixedIndex++
+        break
+      case 'text':
+        map.set(child.field, { type: 'text', height: null })
+        break
+      case 'flex-wrap':
+        map.set(child.field, { type: 'flex-wrap', height: null })
+        break
+      case 'conditional':
+        // Recurse into the conditional's child
+        if (child.child.type === 'fixed') {
+          map.set(child.field, { type: 'fixed', height: child.child.height })
+        } else if (child.child.type === 'text') {
+          map.set(child.child.field, { type: 'text', height: null })
+        } else if (child.child.type === 'flex-wrap') {
+          map.set(child.child.field, { type: 'flex-wrap', height: null })
+        }
+        break
+      case 'group':
+        // Groups are opaque to drift detection — their internal padding
+        // is not separately annotated in the DOM
+        break
+    }
+  }
+  return map
 }
 
 export function detectDrift(schema: Schema, calibration: CalibrationResult): DriftReport {
@@ -120,27 +162,22 @@ export function detectDrift(schema: Schema, calibration: CalibrationResult): Dri
     gapDrift = { field: 'gap', expected: schema.gap, actual: calibration.gap, diff: calibration.gap - schema.gap }
   }
 
-  // Match calibrated children against schema fixed children by name/order
+  // Match calibrated children to schema children by name
+  const nameMap = buildSchemaNameMap(schema.children)
   const childDrift: DriftItem[] = []
-  let schemaFixedIndex = 0
+
   for (const calChild of calibration.children) {
-    // Find the next fixed child in schema to compare against
-    while (schemaFixedIndex < schema.children.length) {
-      const schemaChild = schema.children[schemaFixedIndex]!
-      if (schemaChild.type === 'fixed') {
-        const diff = calChild.height - schemaChild.height
-        if (Math.abs(diff) >= 1) {
-          childDrift.push({
-            field: calChild.name,
-            expected: schemaChild.height,
-            actual: calChild.height,
-            diff,
-          })
-        }
-        schemaFixedIndex++
-        break
-      }
-      schemaFixedIndex++
+    const schemaEntry = nameMap.get(calChild.name)
+    if (schemaEntry === undefined) continue // unmatched — not in schema
+    if (schemaEntry.type !== 'fixed' || schemaEntry.height === null) continue // only compare fixed heights
+    const diff = calChild.height - schemaEntry.height
+    if (Math.abs(diff) >= 1) {
+      childDrift.push({
+        field: calChild.name,
+        expected: schemaEntry.height,
+        actual: calChild.height,
+        diff,
+      })
     }
   }
 

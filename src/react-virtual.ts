@@ -3,6 +3,8 @@
 // useVirtualLayout() combines usePrelayout with useVirtualizer into a single
 // hook. The estimateSize function returns exact Prelayout heights — no DOM
 // measurement needed, no measureElement ref, no flicker.
+//
+// Only vertical lists are supported. Prelayout computes heights, not widths.
 
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { usePrelayout } from './react.js'
@@ -14,11 +16,10 @@ export type VirtualLayoutOptions = {
   containerWidth: number
   getScrollElement: () => HTMLElement | null
   overscan?: number
-  horizontal?: boolean
 }
 
 export function useVirtualLayout(options: VirtualLayoutOptions) {
-  const { items, schema, containerWidth, getScrollElement, overscan, horizontal } = options
+  const { items, schema, containerWidth, getScrollElement, overscan } = options
   const { getItemHeight, heights, totalHeight } = usePrelayout(items, schema, containerWidth)
 
   const virtualizer = useVirtualizer({
@@ -26,7 +27,6 @@ export function useVirtualLayout(options: VirtualLayoutOptions) {
     getScrollElement,
     estimateSize: getItemHeight,
     overscan,
-    horizontal,
   })
 
   return { virtualizer, getItemHeight, heights, totalHeight }
