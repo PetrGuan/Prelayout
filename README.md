@@ -230,7 +230,7 @@ const getItemLayout = buildGetItemLayout(heights)
 <FlatList data={items} getItemLayout={getItemLayout} renderItem={...} />
 ```
 
-**Important:** Unlike web, RN's `prepareItemRN()` bakes in the container width during measurement. If the width changes (e.g. device rotation), re-prepare all items.
+**Important:** Unlike web, RN's `prepareItemsRN()` / `prepareItemRN()` bake in the container width during measurement. If the width changes (e.g. device rotation), re-prepare all items.
 
 Same schema primitives as web — `fixed`, `text`, `row`, `aspectRatio`, `group`, `conditional` all work. `flexWrap` falls back to single-row estimate in RN (no canvas for tag width measurement).
 
@@ -422,7 +422,7 @@ npm install prelayout react-native-text-size
 | `prelayout/ssr` | `serializePrepared()`, `deserializePrepared()`, `precomputeHeights()` |
 | `prelayout/vue` | `usePrelayout()` Vue 3 composable |
 | `prelayout/vue-virtual` | `useVirtualLayout()` for @tanstack/vue-virtual |
-| `prelayout/react-native` | `prepareItemRN()`, `layoutItemRN()`, `buildGetItemLayout()` |
+| `prelayout/react-native` | `prepareItemRN()`, `prepareItemsRN()`, `layoutItemRN()`, `buildGetItemLayout()` |
 | `prelayout/extract` | `fromCSS`, `fromTailwind` — also re-exported from `prelayout` |
 
 ## Use Case Demos

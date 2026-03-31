@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client'
 
 const demos = [
+  { name: 'Playground', href: './playground.html', desc: 'Write schema + data, see predicted vs actual height in real time' },
   { name: 'Feature Showcase', href: './showcase.html', desc: 'All schema primitives in one page with DevTools overlay' },
   { name: 'Side-by-Side Comparison', href: './comparison.html', desc: '10,000 items — Prelayout vs naive fixed-height estimate' },
   { name: 'Auto-Calibration', href: './auto-calibrate.html', desc: 'Wrong schema → auto-corrected by observing 10 rendered items' },

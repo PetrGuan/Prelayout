@@ -20,6 +20,7 @@ export default defineConfig({
         masonry: resolve(__dirname, 'masonry.html'),
         chat: resolve(__dirname, 'chat.html'),
         table: resolve(__dirname, 'table.html'),
+        playground: resolve(__dirname, 'playground.html'),
       },
     },
   },
