@@ -36,10 +36,8 @@ jobs:
         working-directory: demo
         run: npx vite build --base=/Prelayout/
 
-      - name: Set up landing as index
-        run: |
-          mv demo/dist/index.html demo/dist/comparison.html
-          cp demo/dist/landing.html demo/dist/index.html
+      - name: Copy landing as index.html
+        run: cp demo/dist/landing.html demo/dist/index.html
 
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -8,7 +8,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         landing: resolve(__dirname, 'landing.html'),
-        main: resolve(__dirname, 'index.html'),
+        comparison: resolve(__dirname, 'comparison.html'),
         accuracy: resolve(__dirname, 'accuracy.html'),
         benchmark: resolve(__dirname, 'benchmark.html'),
         showcase: resolve(__dirname, 'showcase.html'),
