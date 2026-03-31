@@ -20,6 +20,21 @@
       "types": "./dist/react-virtual.d.ts",
       "import": "./dist/react-virtual.js",
       "default": "./dist/react-virtual.js"
+    },
+    "./react-window": {
+      "types": "./dist/react-window.d.ts",
+      "import": "./dist/react-window.js",
+      "default": "./dist/react-window.js"
+    },
+    "./devtools": {
+      "types": "./dist/devtools.d.ts",
+      "import": "./dist/devtools.js",
+      "default": "./dist/devtools.js"
+    },
+    "./ssr": {
+      "types": "./dist/ssr.d.ts",
+      "import": "./dist/ssr.js",
+      "default": "./dist/ssr.js"
     }
   },
   "files": [
@@ -35,10 +50,14 @@
   "peerDependencies": {
     "@chenglou/pretext": ">=0.0.3",
     "@tanstack/react-virtual": ">=3.0.0",
+    "react-window": ">=1.0.0",
     "react": ">=18.0.0"
   },
   "peerDependenciesMeta": {
     "@tanstack/react-virtual": {
+      "optional": true
+    },
+    "react-window": {
       "optional": true
     },
     "react": {

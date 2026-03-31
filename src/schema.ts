@@ -4,6 +4,8 @@
 // Each child is either:
 //   - fixed: a known constant height (avatar row, button bar, etc.)
 //   - text:  a text field measured by Pretext (wraps based on width)
+//   - flexWrap: tag/chip row that wraps based on width
+//   - aspectRatio: element whose height = width * ratio (images, video)
 //   - group: a nested vertical stack with its own padding/gap (e.g. a quote box)
 //   - conditional: a child that only appears when a data field is truthy
 
@@ -20,6 +22,7 @@ export type TextChild = {
   font: string
   lineHeight: number
   maxLines: number | null
+  minHeight: number
 }
 
 export type FlexWrapChild = {
@@ -30,6 +33,13 @@ export type FlexWrapChild = {
   itemHorizontalPadding: number // left + right padding added to text width per item
   rowGap: number
   columnGap: number
+}
+
+export type AspectRatioChild = {
+  type: 'aspect-ratio'
+  field: string // data field that holds the ratio (number), or null to use the fixed ratio
+  ratio: number | null // fixed ratio (height/width), used when field is not provided
+  maxHeight: number | null
 }
 
 export type GroupChild = {
@@ -45,7 +55,7 @@ export type ConditionalChild = {
   child: SchemaChild
 }
 
-export type SchemaChild = FixedChild | TextChild | FlexWrapChild | GroupChild | ConditionalChild
+export type SchemaChild = FixedChild | TextChild | FlexWrapChild | AspectRatioChild | GroupChild | ConditionalChild
 
 export type Schema = {
   padding: [number, number, number, number]
@@ -71,12 +81,24 @@ export function fixed(height: number): FixedChild {
   return { type: 'fixed', height }
 }
 
-export function text(field: string, options: { font: string; lineHeight: number; maxLines?: number }): TextChild {
+export function text(field: string, options: {
+  font: string
+  lineHeight: number
+  maxLines?: number
+  minHeight?: number
+}): TextChild {
   const maxLines = options.maxLines ?? null
   if (maxLines !== null && maxLines < 1) {
     throw new Error('maxLines must be >= 1')
   }
-  return { type: 'text', field, font: options.font, lineHeight: options.lineHeight, maxLines }
+  return {
+    type: 'text',
+    field,
+    font: options.font,
+    lineHeight: options.lineHeight,
+    maxLines,
+    minHeight: options.minHeight ?? 0,
+  }
 }
 
 export function flexWrap(field: string, options: {
@@ -94,6 +116,18 @@ export function flexWrap(field: string, options: {
     itemHorizontalPadding: (options.itemPadding ?? 0) * 2,
     rowGap: options.rowGap ?? 0,
     columnGap: options.columnGap ?? 0,
+  }
+}
+
+export function aspectRatio(ratio: number, options?: {
+  field?: string
+  maxHeight?: number
+}): AspectRatioChild {
+  return {
+    type: 'aspect-ratio',
+    field: options?.field ?? '',
+    ratio,
+    maxHeight: options?.maxHeight ?? null,
   }
 }
 

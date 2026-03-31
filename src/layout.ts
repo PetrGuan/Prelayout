@@ -80,7 +80,7 @@ function layoutChild(
       if (preparedText === undefined) return null
       const result = layout(preparedText, contentWidth, child.lineHeight)
       const lines = child.maxLines !== null ? Math.min(result.lineCount, child.maxLines) : result.lineCount
-      return lines * child.lineHeight
+      return Math.max(lines * child.lineHeight, child.minHeight)
     }
 
     case 'flex-wrap': {
@@ -104,6 +104,20 @@ function layoutChild(
         }
       }
       return rowCount * child.itemHeight + Math.max(0, rowCount - 1) * child.rowGap
+    }
+
+    case 'aspect-ratio': {
+      // Use per-item ratio from data, or fall back to the fixed ratio
+      let ratio = child.ratio
+      if (child.field.length > 0) {
+        const dataRatio = prepared.data[child.field]
+        if (typeof dataRatio === 'number' && dataRatio > 0) {
+          ratio = dataRatio
+        }
+      }
+      if (ratio === null || ratio <= 0) return null
+      const h = contentWidth * ratio
+      return child.maxHeight !== null ? Math.min(h, child.maxHeight) : h
     }
 
     case 'group': {

@@ -15,7 +15,7 @@ Prelayout extends Pretext's two-phase model from text blocks to component layout
 3. **`layoutItem()`** computes exact height via pure arithmetic (call on every resize)
 
 ```ts
-import { schema, fixed, text, group, conditional, prepareItem, layoutItem } from 'prelayout'
+import { schema, fixed, text, flexWrap, aspectRatio, group, conditional, prepareItem, layoutItem } from 'prelayout'
 
 const commentSchema = schema({
   padding: [12, 16, 13, 16],
@@ -27,7 +27,8 @@ const commentSchema = schema({
       padding: [8, 12, 8, 12],
       children: [text('quoteText', { font: '14px Inter', lineHeight: 20 })],
     })),
-    conditional('hasImage', fixed(200)),                    // optional image
+    conditional('hasImage', aspectRatio(9/16, { maxHeight: 400 })),  // responsive image
+    flexWrap('tags', { font: '12px Inter', itemHeight: 24, itemPadding: 8, columnGap: 6, rowGap: 4 }),
     fixed(24),                                              // reaction bar
   ],
 })
@@ -48,14 +49,16 @@ Phase 1 — prepare (one-time per item):
   Pretext segments text via Intl.Segmenter
   → measures each segment via canvas.measureText()
   → caches widths in a compact array
+  flexWrap tags measured via canvas.measureText()
 
 Phase 2 — layout (on every resize):
   Walks the schema children:
-    fixed(40)       → add 40
-    text('body')    → Pretext replays line-breaking with cached widths (pure addition)
-    flexWrap('tags')→ greedy row packing with cached tag widths (same algorithm)
-    group(...)      → recurse with inner padding
-    conditional()   → check data field, skip or include
+    fixed(40)        → add 40
+    text('body')     → Pretext replays line-breaking with cached widths (pure addition)
+    flexWrap('tags') → greedy row packing with cached tag widths (same algorithm)
+    aspectRatio(r)   → contentWidth * r, capped by maxHeight
+    group(...)       → recurse with inner padding
+    conditional()    → check data field, skip or include
   Sum up with padding + gaps → exact height
 ```
 
@@ -90,43 +93,47 @@ Accuracy depends on the schema correctly describing your component's layout cons
 | Primitive | Description |
 |-----------|-------------|
 | `fixed(height)` | Constant-height element (avatar row, button bar, divider) |
-| `text(field, { font, lineHeight, maxLines? })` | Text field measured by Pretext — wraps based on width. Optional `maxLines` caps line count (matches CSS `-webkit-line-clamp`) |
-| `flexWrap(field, { font, itemHeight, itemPadding?, columnGap?, rowGap? })` | Tag/chip row that wraps based on width. `field` points to a `string[]` in data. Each item's text is measured via canvas, then greedy-packed into rows |
+| `text(field, { font, lineHeight, maxLines?, minHeight? })` | Text field measured by Pretext. `maxLines` caps line count (CSS `-webkit-line-clamp`). `minHeight` sets a floor height |
+| `flexWrap(field, { font, itemHeight, itemPadding?, columnGap?, rowGap? })` | Tag/chip row that wraps. `field` points to a `string[]` in data |
+| `aspectRatio(ratio, { field?, maxHeight? })` | Element whose height = contentWidth × ratio (images, video). `field` overrides ratio per item from data. `maxHeight` caps the result |
 | `group({ padding, gap, children })` | Nested vertical stack with its own padding (e.g. a quote box) |
 | `conditional(field, child)` | Child included only when `data[field]` is truthy |
 | `schema({ padding, gap, children })` | Top-level container defining the item structure |
 
 `padding` accepts a number (uniform) or `[top, right, bottom, left]`. Include borders in padding (e.g. `13` = 12px padding + 1px border).
 
-`itemPadding` in `flexWrap` is the horizontal padding per tag (applied on both sides). `itemHeight` is the total rendered height including any vertical padding.
-
 ## React Integration
 
-### Core hook — works with any virtualizer
+### @tanstack/react-virtual
 
 ```tsx
 import { usePrelayout } from 'prelayout/react'
 
-function CommentList({ items, schema }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(0)
+const { getItemHeight } = usePrelayout(items, commentSchema, width)
 
-  const { getItemHeight } = usePrelayout(items, schema, width)
-
-  const virtualizer = useVirtualizer({
-    count: items.length,
-    getScrollElement: () => containerRef.current,
-    estimateSize: getItemHeight,  // exact — no measureElement needed
-  })
-
-  // ... render virtualizer.getVirtualItems()
-}
+const virtualizer = useVirtualizer({
+  count: items.length,
+  getScrollElement: () => scrollRef.current,
+  estimateSize: getItemHeight,  // exact — no measureElement needed
+})
 ```
 
-The hook handles memoization internally:
-- Re-prepares only when items change (incremental — unchanged items reuse cached handles)
-- Re-layouts only when `containerWidth` changes
-- `schema` is stabilized by value — inline `schema({...})` is safe
+### react-window
+
+```tsx
+import { usePrelayoutItemSize } from 'prelayout/react-window'
+
+const { itemSize } = usePrelayoutItemSize(items, commentSchema, width)
+
+<VariableSizeList
+  height={600}
+  itemCount={items.length}
+  itemSize={itemSize}
+  width={width}
+>
+  {Row}
+</VariableSizeList>
+```
 
 ### Tanstack convenience wrapper
 
@@ -137,18 +144,54 @@ const { virtualizer } = useVirtualLayout({
   items,
   schema: commentSchema,
   containerWidth: width,
-  getScrollElement: () => containerRef.current,
+  getScrollElement: () => scrollRef.current,
 })
 ```
 
-## Install
+The hooks handle memoization internally:
+- Re-prepares only when items change (incremental — unchanged items reuse cached handles)
+- Re-layouts only when `containerWidth` changes
+- `schema` is stabilized by value — inline `schema({...})` is safe
 
-```bash
-# Core only
-npm install prelayout @chenglou/pretext
+## DevTools
 
-# With React + Tanstack integration
-npm install prelayout @chenglou/pretext @tanstack/react-virtual
+Visual overlay that highlights predicted vs actual height differences:
+
+```ts
+import { createDevOverlay } from 'prelayout/devtools'
+
+const overlay = createDevOverlay()
+
+// Measure each visible item
+for (const item of visibleItems) {
+  overlay.measure(domElement, predictedHeight)
+}
+
+overlay.show()  // renders colored borders on mismatched items + summary badge
+overlay.hide()  // remove overlay
+overlay.destroy()  // clean up
+
+// Programmatic summary
+const { exactMatches, totalItems, avgError, maxError } = overlay.summary()
+```
+
+## SSR Support
+
+Pre-compute heights on the server to eliminate Cumulative Layout Shift (CLS):
+
+```ts
+import { serializePrepared, deserializePrepared, precomputeHeights } from 'prelayout/ssr'
+
+// Client: serialize after prepare
+const serialized = serializePrepared(prepared)
+
+// Server: deserialize and layout (pure arithmetic, no canvas)
+const restored = deserializePrepared(serialized, data)
+const height = layoutItem(restored, containerWidth, schema)
+
+// Or pre-compute for multiple breakpoints at once
+const heightMap = precomputeHeights(preparedItems, schema, [320, 768, 1024, 1440])
+// Map { 320 → [h1, h2, ...], 768 → [h1, h2, ...], ... }
 ```
 
 ## Auto-Calibration
@@ -160,7 +203,7 @@ The biggest maintenance risk is schema drift — CSS changes but the schema does
 Annotate your component's children with `data-pl` attributes:
 
 ```tsx
-function CommentCard({ item, rootRef }: { item: Comment; rootRef: React.Ref<HTMLDivElement> }) {
+function CommentCard({ item, rootRef }: Props) {
   return (
     <div ref={rootRef}>
       <div data-pl="header">...</div>
@@ -171,27 +214,16 @@ function CommentCard({ item, rootRef }: { item: Comment; rootRef: React.Ref<HTML
 }
 ```
 
-Then extract the real numbers (e.g. in a `useEffect` or dev-mode button handler):
+Then extract the real numbers:
 
 ```ts
 import { calibrate } from 'prelayout'
 
-// rootRef.current is guaranteed non-null inside useEffect after mount
 useEffect(() => {
   if (!rootRef.current) return
   const result = calibrate(rootRef.current)
   console.log(result)
-  // {
-  //   padding: [12, 16, 12, 16],
-  //   gap: 8,
-  //   children: [
-  //     { name: 'header', height: 40, top: 12 },
-  //     { name: 'body', height: 66, top: 60 },
-  //     { name: 'actions', height: 24, top: 134 },
-  //   ],
-  //   containerWidth: 480,
-  //   totalHeight: 170,
-  // }
+  // { padding: [12, 16, 12, 16], gap: 8, children: [...], containerWidth: 480 }
 }, [])
 ```
 
@@ -200,21 +232,43 @@ useEffect(() => {
 ```ts
 import { detectDrift } from 'prelayout'
 
-const drift = detectDrift(mySchema, calibrate(rootRef.current))
+const drift = detectDrift(mySchema, calibrate(rootRef.current!))
 if (drift.hasDrift) {
   console.warn('Schema drift detected:', drift)
-  // { paddingDrift: [{ field: 'paddingTop', expected: 12, actual: 16, diff: 4 }],
-  //   gapDrift: null,
-  //   childDrift: [{ field: 'header', expected: 40, actual: 44, diff: 4 }] }
 }
 ```
 
 Use this in development or CI to catch CSS-schema mismatches early.
 
+## Install
+
+```bash
+# Core only
+npm install prelayout @chenglou/pretext
+
+# With React + Tanstack
+npm install prelayout @chenglou/pretext @tanstack/react-virtual
+
+# With React + react-window
+npm install prelayout @chenglou/pretext react-window
+```
+
+## Package Exports
+
+| Entry point | Description |
+|-------------|-------------|
+| `prelayout` | Core: schema, prepare, layout, calibrate |
+| `prelayout/react` | `usePrelayout()` hook |
+| `prelayout/react-virtual` | `useVirtualLayout()` for @tanstack/react-virtual |
+| `prelayout/react-window` | `usePrelayoutItemSize()` for react-window |
+| `prelayout/devtools` | `createDevOverlay()` visual debugging |
+| `prelayout/ssr` | `serializePrepared()`, `deserializePrepared()`, `precomputeHeights()` |
+
 ## Known Limitations
 
 - **Schema must match CSS**: padding, gaps, and fixed heights are manually specified. Use `calibrate()` / `detectDrift()` to catch mismatches.
 - **`system-ui` font**: canvas and DOM can resolve different fonts on macOS. Use named fonts (Inter, Helvetica, etc.).
+- **Vertical lists only**: Prelayout computes heights, not widths. Horizontal virtual lists are not supported.
 
 ## License
 

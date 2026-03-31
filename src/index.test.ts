@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { schema, fixed, text, flexWrap, group, conditional, layoutItem, layoutItemDetailed } from './index.js'
+import { schema, fixed, text, flexWrap, aspectRatio, group, conditional, layoutItem, layoutItemDetailed } from './index.js'
 import type { PreparedItem } from './index.js'
 
 // Unit tests for the pure-arithmetic layout phase.
@@ -21,7 +21,7 @@ describe('schema builders', () => {
 
   test('text creates a text child', () => {
     const child = text('body', { font: '16px Inter', lineHeight: 22 })
-    expect(child).toEqual({ type: 'text', field: 'body', font: '16px Inter', lineHeight: 22, maxLines: null })
+    expect(child).toEqual({ type: 'text', field: 'body', font: '16px Inter', lineHeight: 22, maxLines: null, minHeight: 0 })
   })
 
   test('conditional creates a conditional child', () => {
@@ -51,7 +51,6 @@ describe('layoutItem with fixed-only schemas', () => {
     const s = schema({ padding: 12, children: [fixed(40)] })
     const prepared = mockPreparedItem()
     const height = layoutItem(prepared, 320, s)
-    // 12 (top) + 40 (child) + 12 (bottom) = 64
     expect(height).toBe(64)
   })
 
@@ -59,7 +58,6 @@ describe('layoutItem with fixed-only schemas', () => {
     const s = schema({ padding: 12, gap: 8, children: [fixed(40), fixed(24), fixed(30)] })
     const prepared = mockPreparedItem()
     const height = layoutItem(prepared, 320, s)
-    // 12 + 40 + 8 + 24 + 8 + 30 + 12 = 134
     expect(height).toBe(134)
   })
 
@@ -71,7 +69,6 @@ describe('layoutItem with fixed-only schemas', () => {
     })
     const prepared = mockPreparedItem({ image: null })
     const height = layoutItem(prepared, 320, s)
-    // 10 + 20 + 10 = 40 (conditional skipped, no gap added)
     expect(height).toBe(40)
   })
 
@@ -83,7 +80,6 @@ describe('layoutItem with fixed-only schemas', () => {
     })
     const prepared = mockPreparedItem({ image: 'https://example.com/img.jpg' })
     const height = layoutItem(prepared, 320, s)
-    // 10 + 20 + 8 + 200 + 10 = 248
     expect(height).toBe(248)
   })
 })
@@ -137,11 +133,24 @@ describe('edge cases', () => {
     const child = text('body', { font: '16px Inter', lineHeight: 22 })
     expect(child.maxLines).toBeNull()
   })
+
+  test('maxLines: 0 throws', () => {
+    expect(() => text('body', { font: '16px Inter', lineHeight: 22, maxLines: 0 })).toThrow()
+  })
+
+  test('text with minHeight creates correct schema', () => {
+    const child = text('body', { font: '16px Inter', lineHeight: 22, minHeight: 44 })
+    expect(child.minHeight).toBe(44)
+  })
+
+  test('text without minHeight defaults to 0', () => {
+    const child = text('body', { font: '16px Inter', lineHeight: 22 })
+    expect(child.minHeight).toBe(0)
+  })
 })
 
 describe('flexWrap layout', () => {
   test('all tags fit in one row', () => {
-    // 3 tags of 50px each + 8px gaps = 50 + 8 + 50 + 8 + 50 = 166px, fits in 200px
     const flex = new Map([['tags', [50, 50, 50]]])
     const s = schema({
       padding: 0,
@@ -149,14 +158,10 @@ describe('flexWrap layout', () => {
     })
     const prepared = mockPreparedItem({ tags: ['a', 'b', 'c'] }, flex)
     const height = layoutItem(prepared, 200, s)
-    expect(height).toBe(28) // 1 row
+    expect(height).toBe(28)
   })
 
   test('tags wrap to multiple rows', () => {
-    // 3 tags of 80px + 8px gaps: 80+8+80 = 168 > 150, so wraps
-    // Row 1: [80, 80] = 168 > 150, so actually [80] then [80] then [80]
-    // Wait: 80 fits, 80+8+80 = 168 > 150, so row 1 = [80], row 2 starts with 80
-    // 80+8+80 = 168 > 150, row 2 = [80], row 3 = [80]
     const flex = new Map([['tags', [80, 80, 80]]])
     const s = schema({
       padding: 0,
@@ -164,13 +169,10 @@ describe('flexWrap layout', () => {
     })
     const prepared = mockPreparedItem({ tags: ['a', 'b', 'c'] }, flex)
     const height = layoutItem(prepared, 150, s)
-    // 3 rows: 28 + 4 + 28 + 4 + 28 = 92
     expect(height).toBe(92)
   })
 
   test('two tags per row', () => {
-    // 4 tags of 60px + 8px gap: 60+8+60 = 128 ≤ 150, but 128+8+60 = 196 > 150
-    // Row 1: [60, 60], Row 2: [60, 60]
     const flex = new Map([['tags', [60, 60, 60, 60]]])
     const s = schema({
       padding: 0,
@@ -178,7 +180,6 @@ describe('flexWrap layout', () => {
     })
     const prepared = mockPreparedItem({ tags: ['a', 'b', 'c', 'd'] }, flex)
     const height = layoutItem(prepared, 150, s)
-    // 2 rows: 28 + 4 + 28 = 60
     expect(height).toBe(60)
   })
 
@@ -190,7 +191,53 @@ describe('flexWrap layout', () => {
     })
     const prepared = mockPreparedItem({ tags: [] })
     const height = layoutItem(prepared, 300, s)
-    // flexWrap returns null (no tags), so no gap added
+    expect(height).toBe(10 + 20 + 10)
+  })
+})
+
+describe('aspectRatio layout', () => {
+  test('fixed ratio computes height from width', () => {
+    // Container 320px, padding 10 each side → content 300px
+    // ratio 0.5625 (16:9) → 300 * 0.5625 = 168.75
+    const s = schema({
+      padding: [0, 10, 0, 10],
+      children: [aspectRatio(9 / 16)],
+    })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 320, s)
+    expect(height).toBeCloseTo(168.75)
+  })
+
+  test('per-item ratio from data field', () => {
+    const s = schema({
+      padding: 0,
+      children: [aspectRatio(0, { field: 'imageRatio' })],
+    })
+    const prepared = mockPreparedItem({ imageRatio: 0.75 })
+    const height = layoutItem(prepared, 400, s)
+    expect(height).toBe(300)
+  })
+
+  test('maxHeight caps the result', () => {
+    const s = schema({
+      padding: 0,
+      children: [aspectRatio(1, { maxHeight: 200 })],
+    })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 400, s)
+    // ratio 1 → 400px, but capped at 200
+    expect(height).toBe(200)
+  })
+
+  test('null ratio with no data field returns null', () => {
+    const s = schema({
+      padding: 10,
+      gap: 8,
+      children: [fixed(20), aspectRatio(0, { field: 'ratio' })],
+    })
+    const prepared = mockPreparedItem({ ratio: null })
+    const height = layoutItem(prepared, 300, s)
+    // aspectRatio returns null, no gap
     expect(height).toBe(10 + 20 + 10)
   })
 })
