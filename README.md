@@ -513,11 +513,29 @@ const draftHeight = layoutItem(prepareItem({ body: draft }, bubbleSchema), maxWi
 
 All demos: https://petrguan.github.io/Prelayout/
 
+## When to Use Prelayout (and When Not To)
+
+**Prelayout is a good fit when:**
+- You need heights before rendering (scroll-to-index, accordion animation, masonry column assignment)
+- Your list items have a known, repeatable structure (chat messages, comments, product cards)
+- You need accurate scrollbar size and position from the start
+- You're doing frequent resize recalculations on large lists
+
+**You probably don't need Prelayout when:**
+- Sequential scrolling with `measureElement` + `useLayoutEffect` works fine for you — it handles most cases well and has no visible flicker
+- Your list items have truly dynamic/unknown structure (arbitrary HTML, user-generated content, iframes)
+- You have very few items — DOM measurement cost is negligible for small lists
+- Your items contain content that can't be described as a schema (complex CSS grid layouts, nested scrollable regions)
+
 ## Known Limitations
 
-- **Schema must match CSS**: padding, gaps, and fixed heights are manually specified. Use `fromTailwind` / `fromCSS` to derive from tokens, `createAutoCalibrator()` for runtime correction, or `detectDrift()` for CI checks.
-- **`system-ui` font**: canvas and DOM can resolve different fonts on macOS. Use named fonts (Inter, Helvetica, etc.).
+- **Schema is manual**: You must describe your component's layout structure as a schema and keep it in sync with CSS. `fromTailwind` / `fromCSS` help derive values from tokens, `createAutoCalibrator()` can learn corrections at runtime, and `detectDrift()` catches mismatches — but the fundamental trade-off is maintaining a second source of truth.
+- **Text accuracy depends on Pretext**: Text height prediction comes from Pretext's canvas.measureText() vs DOM comparison. This is exact for ~96% of cases but can be off by 1 line near line-break boundaries, especially with special characters (backticks, em-dashes). This is a Pretext limitation, not Prelayout's.
+- **`system-ui` font is unreliable**: canvas and DOM can resolve `system-ui` to different fonts on macOS. Use named fonts (Inter, Helvetica, etc.).
 - **Vertical lists only**: Prelayout computes heights, not widths. Horizontal virtual lists are not supported.
+- **flexWrap in React Native**: Falls back to single-row estimate since RN has no canvas for tag width measurement.
+- **SSR serialization is fragile**: `serializePrepared` / `deserializePrepared` depend on Pretext's internal PreparedText structure being JSON-safe. This is not a documented Pretext API guarantee — pin your Pretext version.
+- **No CSS auto-extraction**: You cannot point Prelayout at a React/Vue/Svelte component and have it automatically generate a schema. The structure must be declared manually or with `fromTailwind` / `fromCSS` helpers.
 
 ## License
 
