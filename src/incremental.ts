@@ -11,21 +11,7 @@
 import { prepare, type PreparedText } from '@chenglou/pretext'
 import type { Schema, SchemaChild } from './schema.js'
 import type { PreparedItem } from './prepare.js'
-
-let measureCtx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null = null
-
-function getMeasureContext(): CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D {
-  if (measureCtx !== null) return measureCtx
-  if (typeof OffscreenCanvas !== 'undefined') {
-    measureCtx = new OffscreenCanvas(1, 1).getContext('2d')!
-    return measureCtx
-  }
-  if (typeof document !== 'undefined') {
-    measureCtx = document.createElement('canvas').getContext('2d')!
-    return measureCtx
-  }
-  throw new Error('Prelayout requires OffscreenCanvas or a DOM canvas context.')
-}
+import { getMeasureContext } from './canvas.js'
 
 export function prepareItemIncremental(
   prevPrepared: PreparedItem,
@@ -99,7 +85,14 @@ function updateChild(
         cleanupChild(child.child, textFields, flexFields)
         break
       }
-      // Gate is truthy — check if inner content changed
+      if (!prevGate && newGate) {
+        // Became truthy — must prepare from scratch (previous PreparedItem
+        // would not have contained this child's measurements)
+        cleanupChild(child.child, textFields, flexFields)
+        forceUpdateChild(child.child, newData, textFields, flexFields)
+        break
+      }
+      // Was truthy, still truthy — check if inner content changed
       updateChild(child.child, prevData, newData, textFields, flexFields)
       break
     }
@@ -130,6 +123,54 @@ function cleanupChild(
     case 'conditional':
       cleanupChild(child.child, textFields, flexFields)
       break
+    case 'aspect-ratio':
+    case 'fixed':
+      break
+  }
+}
+
+// Force-prepare a child regardless of previous data state.
+// Used when a conditional transitions from falsy to truthy.
+function forceUpdateChild(
+  child: SchemaChild,
+  data: Record<string, unknown>,
+  textFields: Map<string, PreparedText>,
+  flexFields: Map<string, number[]>,
+): void {
+  switch (child.type) {
+    case 'text': {
+      const value = data[child.field]
+      if (typeof value === 'string' && value.length > 0) {
+        textFields.set(child.field, prepare(value, child.font))
+      }
+      break
+    }
+    case 'flex-wrap': {
+      const value = data[child.field]
+      if (Array.isArray(value) && value.length > 0) {
+        const ctx = getMeasureContext()
+        ctx.font = child.font
+        const hPad = child.itemHorizontalPadding
+        const widths: number[] = []
+        for (let i = 0; i < value.length; i++) {
+          widths.push(ctx.measureText(String(value[i])).width + hPad)
+        }
+        flexFields.set(child.field, widths)
+      }
+      break
+    }
+    case 'group': {
+      for (const grandchild of child.children) {
+        forceUpdateChild(grandchild, data, textFields, flexFields)
+      }
+      break
+    }
+    case 'conditional': {
+      if (data[child.field]) {
+        forceUpdateChild(child.child, data, textFields, flexFields)
+      }
+      break
+    }
     case 'aspect-ratio':
     case 'fixed':
       break

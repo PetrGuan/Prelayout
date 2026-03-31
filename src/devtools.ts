@@ -131,12 +131,22 @@ export function createDevOverlay(): DevOverlay {
       pointer-events:auto;
       z-index:100000;
     `
-    badge.innerHTML = `
-      <div style="font-weight:700;margin-bottom:4px">Prelayout DevTools</div>
-      <div>Exact (<1px): <span style="color:${s.exactMatches === s.totalItems ? '#4ade80' : '#f87171'}">${s.exactMatches}/${s.totalItems}</span></div>
-      <div>Avg error: ${s.avgError.toFixed(2)}px</div>
-      <div>Max error: ${s.maxError.toFixed(1)}px</div>
-    `
+    const title = document.createElement('div')
+    title.style.cssText = 'font-weight:700;margin-bottom:4px'
+    title.textContent = 'Prelayout DevTools'
+    badge.appendChild(title)
+
+    const exactColor = s.exactMatches === s.totalItems ? '#4ade80' : '#f87171'
+    for (const line of [
+      `Exact (<1px): ${s.exactMatches}/${s.totalItems}`,
+      `Avg error: ${s.avgError.toFixed(2)}px`,
+      `Max error: ${s.maxError.toFixed(1)}px`,
+    ]) {
+      const row = document.createElement('div')
+      row.textContent = line
+      if (line.startsWith('Exact')) row.style.color = exactColor
+      badge.appendChild(row)
+    }
     overlayContainer.appendChild(badge)
   }
 

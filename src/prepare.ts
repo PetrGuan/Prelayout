@@ -7,21 +7,7 @@
 
 import { prepare, type PreparedText } from '@chenglou/pretext'
 import type { Schema, SchemaChild } from './schema.js'
-
-let measureCtx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null = null
-
-function getMeasureContext(): CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D {
-  if (measureCtx !== null) return measureCtx
-  if (typeof OffscreenCanvas !== 'undefined') {
-    measureCtx = new OffscreenCanvas(1, 1).getContext('2d')!
-    return measureCtx
-  }
-  if (typeof document !== 'undefined') {
-    measureCtx = document.createElement('canvas').getContext('2d')!
-    return measureCtx
-  }
-  throw new Error('Prelayout requires OffscreenCanvas or a DOM canvas context.')
-}
+import { getMeasureContext } from './canvas.js'
 
 export type PreparedItem = {
   textFields: Map<string, PreparedText>

@@ -16,7 +16,7 @@ export type PrelayoutItemSizeResult = {
   itemSize: (index: number) => number
   heights: number[]
   totalHeight: number
-  resetAfterIndex: () => void
+  resetAfterIndex: (index?: number) => void
 }
 
 export function usePrelayoutItemSize(
@@ -27,8 +27,8 @@ export function usePrelayoutItemSize(
 ): PrelayoutItemSizeResult {
   const { getItemHeight, heights, totalHeight } = usePrelayout(items, schema, containerWidth)
 
-  const resetAfterIndex = useCallback(() => {
-    listRef?.current?.resetAfterIndex(0)
+  const resetAfterIndex = useCallback((index = 0) => {
+    listRef?.current?.resetAfterIndex(index)
   }, [listRef])
 
   return { itemSize: getItemHeight, heights, totalHeight, resetAfterIndex }

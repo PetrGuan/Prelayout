@@ -68,13 +68,14 @@ export function createAutoCalibrator(options?: AutoCalibrateOptions): AutoCalibr
   }
 
   function observe(element: HTMLElement, index: number, predictedHeight: number): number {
-    if (!observedIndices.has(index)) {
+    // Once calibrated, skip further observations to avoid unbounded memory growth
+    if (!isCalibrated && !observedIndices.has(index)) {
       const actual = element.getBoundingClientRect().height
       const error = predictedHeight - actual
       errors.push(error)
       observedIndices.add(index)
 
-      if (!isCalibrated && errors.length >= sampleSize) {
+      if (errors.length >= sampleSize) {
         correction = computeCorrection()
         isCalibrated = true
         onCalibrated?.(correction)

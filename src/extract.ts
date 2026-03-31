@@ -21,12 +21,13 @@
 // --- CSS value parsers ---
 
 export const fromCSS = {
-  /** Parse a CSS px value: '12px' → 12, '1.5rem' → 24 (assumes 16px root) */
+  /** Parse a CSS px value: '12px' → 12, '1.5rem' → 24 (assumes 16px root).
+   *  Note: `em` is not supported — it depends on the element's font size which
+   *  varies per component. Use `px` or `rem` values for schema constants. */
   px(value: string, rootFontSize = 16): number {
     const trimmed = value.trim()
     if (trimmed.endsWith('px')) return parseFloat(trimmed)
     if (trimmed.endsWith('rem')) return parseFloat(trimmed) * rootFontSize
-    if (trimmed.endsWith('em')) return parseFloat(trimmed) * rootFontSize
     return parseFloat(trimmed) || 0
   },
 
