@@ -151,9 +151,64 @@ npm install prelayout @chenglou/pretext
 npm install prelayout @chenglou/pretext @tanstack/react-virtual
 ```
 
+## Auto-Calibration
+
+The biggest maintenance risk is schema drift — CSS changes but the schema doesn't. Prelayout provides two tools to catch this:
+
+### `calibrate(element)` — extract layout constants from DOM
+
+Annotate your component's children with `data-pl` attributes:
+
+```tsx
+function CommentCard({ item }: { item: Comment }) {
+  return (
+    <div ref={rootRef}>
+      <div data-pl="header">...</div>
+      <div data-pl="body">...</div>
+      <div data-pl="actions">...</div>
+    </div>
+  )
+}
+```
+
+Then extract the real numbers:
+
+```ts
+import { calibrate } from 'prelayout'
+
+const result = calibrate(rootRef.current)
+// {
+//   padding: [12, 16, 12, 16],
+//   gap: 8,
+//   children: [
+//     { name: 'header', height: 40, top: 12 },
+//     { name: 'body', height: 66, top: 60 },
+//     { name: 'actions', height: 24, top: 134 },
+//   ],
+//   containerWidth: 480,
+//   totalHeight: 170,
+// }
+```
+
+### `detectDrift(schema, calibration)` — compare schema against reality
+
+```ts
+import { detectDrift } from 'prelayout'
+
+const drift = detectDrift(mySchema, calibrate(rootRef.current))
+if (drift.hasDrift) {
+  console.warn('Schema drift detected:', drift)
+  // { paddingDrift: [{ field: 'paddingTop', expected: 12, actual: 16, diff: 4 }],
+  //   gapDrift: null,
+  //   childDrift: [{ field: 'header', expected: 40, actual: 44, diff: 4 }] }
+}
+```
+
+Use this in development or CI to catch CSS-schema mismatches early.
+
 ## Known Limitations
 
-- **Schema must match CSS**: padding, gaps, and fixed heights are manually specified. If CSS changes but the schema doesn't, heights will drift.
+- **Schema must match CSS**: padding, gaps, and fixed heights are manually specified. Use `calibrate()` / `detectDrift()` to catch mismatches.
 - **`system-ui` font**: canvas and DOM can resolve different fonts on macOS. Use named fonts (Inter, Helvetica, etc.).
 
 ## License

@@ -1,0 +1,153 @@
+// Auto-calibration: extract layout constants from a rendered DOM element.
+//
+// Usage:
+//   1. Render a sample list item with data-pl attributes on each child:
+//      <div ref={rootRef}>
+//        <div data-pl="header">...</div>
+//        <div data-pl="body">...</div>
+//        <div data-pl="tags">...</div>
+//      </div>
+//
+//   2. Call calibrate(rootRef.current) to extract:
+//      - Container padding (from computed style)
+//      - Gap between children (from spacing between rects)
+//      - Per-child heights (from getBoundingClientRect)
+//
+//   3. Use the output to build or verify your schema.
+
+export type CalibratedChild = {
+  name: string
+  height: number
+  top: number
+}
+
+export type CalibrationResult = {
+  padding: [number, number, number, number]
+  gap: number
+  children: CalibratedChild[]
+  containerWidth: number
+  totalHeight: number
+}
+
+export function calibrate(element: HTMLElement): CalibrationResult {
+  const style = getComputedStyle(element)
+  const pt = parseFloat(style.paddingTop) || 0
+  const pr = parseFloat(style.paddingRight) || 0
+  const pb = parseFloat(style.paddingBottom) || 0
+  const pl = parseFloat(style.paddingLeft) || 0
+  const bt = parseFloat(style.borderTopWidth) || 0
+  const bb = parseFloat(style.borderBottomWidth) || 0
+
+  const rootRect = element.getBoundingClientRect()
+  const annotated = element.querySelectorAll<HTMLElement>('[data-pl]')
+  const children: CalibratedChild[] = []
+
+  for (let i = 0; i < annotated.length; i++) {
+    const child = annotated[i]!
+    // Only include direct-ish children (skip nested data-pl inside groups)
+    if (child.parentElement !== element) continue
+    const rect = child.getBoundingClientRect()
+    children.push({
+      name: child.getAttribute('data-pl')!,
+      height: rect.height,
+      top: rect.top - rootRect.top,
+    })
+  }
+
+  // Compute gap from spacing between consecutive children
+  let gap = 0
+  if (children.length >= 2) {
+    let totalGap = 0
+    let gapCount = 0
+    for (let i = 1; i < children.length; i++) {
+      const prev = children[i - 1]!
+      const curr = children[i]!
+      const spacing = curr.top - (prev.top + prev.height)
+      if (spacing > 0) {
+        totalGap += spacing
+        gapCount++
+      }
+    }
+    if (gapCount > 0) gap = Math.round(totalGap / gapCount)
+  }
+
+  return {
+    padding: [
+      Math.round(pt + bt),
+      Math.round(pr),
+      Math.round(pb + bb),
+      Math.round(pl),
+    ],
+    gap,
+    children,
+    containerWidth: rootRect.width,
+    totalHeight: rootRect.height,
+  }
+}
+
+// Compare a calibration result against a schema and report differences.
+// Useful for detecting drift when CSS changes but the schema wasn't updated.
+
+import type { Schema } from './schema.js'
+
+export type DriftItem = {
+  field: string
+  expected: number
+  actual: number
+  diff: number
+}
+
+export type DriftReport = {
+  hasDrift: boolean
+  paddingDrift: DriftItem[]
+  gapDrift: DriftItem | null
+  childDrift: DriftItem[]
+}
+
+export function detectDrift(schema: Schema, calibration: CalibrationResult): DriftReport {
+  const paddingDrift: DriftItem[] = []
+  const labels = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
+  for (let i = 0; i < 4; i++) {
+    const expected = schema.padding[i]!
+    const actual = calibration.padding[i]!
+    if (Math.abs(expected - actual) >= 1) {
+      paddingDrift.push({ field: labels[i]!, expected, actual, diff: actual - expected })
+    }
+  }
+
+  let gapDrift: DriftItem | null = null
+  if (calibration.children.length >= 2 && Math.abs(schema.gap - calibration.gap) >= 1) {
+    gapDrift = { field: 'gap', expected: schema.gap, actual: calibration.gap, diff: calibration.gap - schema.gap }
+  }
+
+  // Match calibrated children against schema fixed children by name/order
+  const childDrift: DriftItem[] = []
+  let schemaFixedIndex = 0
+  for (const calChild of calibration.children) {
+    // Find the next fixed child in schema to compare against
+    while (schemaFixedIndex < schema.children.length) {
+      const schemaChild = schema.children[schemaFixedIndex]!
+      if (schemaChild.type === 'fixed') {
+        const diff = calChild.height - schemaChild.height
+        if (Math.abs(diff) >= 1) {
+          childDrift.push({
+            field: calChild.name,
+            expected: schemaChild.height,
+            actual: calChild.height,
+            diff,
+          })
+        }
+        schemaFixedIndex++
+        break
+      }
+      schemaFixedIndex++
+    }
+  }
+
+  return {
+    hasDrift: paddingDrift.length > 0 || gapDrift !== null || childDrift.length > 0,
+    paddingDrift,
+    gapDrift,
+    childDrift,
+  }
+}

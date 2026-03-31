@@ -15,3 +15,6 @@ export type { PreparedItem } from './prepare.js'
 
 export { layoutItem, layoutItemDetailed } from './layout.js'
 export type { LayoutResult } from './layout.js'
+
+export { calibrate, detectDrift } from './calibrate.js'
+export type { CalibratedChild, CalibrationResult, DriftItem, DriftReport } from './calibrate.js'
