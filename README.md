@@ -2,6 +2,24 @@
 
 Component-level height prediction for virtual scroll lists. Built on [Pretext](https://github.com/chenglou/pretext).
 
+## Live Demos
+
+**[Try the Playground](https://petrguan.github.io/Prelayout/playground.html)** — edit schema + data, see predicted vs actual height in real time.
+
+| Demo | What it shows |
+|------|--------------|
+| [Truncated Tags](https://petrguan.github.io/Prelayout/truncate.html) | Tags that fit + "+N" chip — **drag the slider to see flicker difference** vs naive approach |
+| [Virtual Table](https://petrguan.github.io/Prelayout/table.html) | 5,000 rows with flex columns — row height = tallest cell |
+| [Chat Bubbles](https://petrguan.github.io/Prelayout/chat.html) | Multilingual chat with live height preview as you type |
+| [Masonry Layout](https://petrguan.github.io/Prelayout/masonry.html) | Pinterest-style grid — card heights predicted, columns assigned instantly |
+| [Accordion](https://petrguan.github.io/Prelayout/accordion.html) | Expand/collapse with predicted heights — zero-flicker CSS transition |
+| [Side-by-Side](https://petrguan.github.io/Prelayout/comparison.html) | 10,000 items — Prelayout vs naive fixed-height estimate |
+| [Feature Showcase](https://petrguan.github.io/Prelayout/showcase.html) | All schema primitives + DevTools overlay |
+| [Stress Test](https://petrguan.github.io/Prelayout/stress.html) | 28 adversarial cases — CJK, Arabic, emoji, long words (27/28 exact) |
+| [Benchmark](https://petrguan.github.io/Prelayout/benchmark.html) | prepare() + layout() vs DOM measurement (~100x faster) |
+| [Auto-Calibration](https://petrguan.github.io/Prelayout/auto-calibrate.html) | Wrong schema → auto-corrected by observing 10 rendered items |
+| [CSS/Tailwind](https://petrguan.github.io/Prelayout/extract.html) | Type Tailwind classes → schema constants in real time |
+
 ## The Problem
 
 Virtual lists need item heights before rendering. Today you either assume fixed heights (inaccurate), use `measureElement` + `useLayoutEffect` (works well for sequential scrolling, but scroll-to-index and scrollbar size are based on estimates until items are measured), or use `ResizeObserver` (causes jumping).
@@ -508,8 +526,6 @@ const tableRowSchema = schema({
 const draftHeight = layoutItem(prepareItem({ body: draft }, bubbleSchema), maxWidth, bubbleSchema)
 // Virtual list uses predicted heights for all messages — instant scroll-to-bottom
 ```
-
-**Try it yourself:** [Playground](https://petrguan.github.io/Prelayout/playground.html) — edit schema + data, see predicted vs actual height in real time.
 
 All demos: https://petrguan.github.io/Prelayout/
 
