@@ -124,7 +124,7 @@ Accuracy depends on the schema correctly describing your component's layout cons
 | `flexWrap(field, { font, itemHeight, itemPadding?, columnGap?, rowGap? })` | Tag/chip row that wraps. `field` points to a `string[]` in data |
 | `aspectRatio(ratio, { field?, maxHeight? })` | Element whose height = contentWidth × ratio (images, video). `field` overrides ratio per item from data. `maxHeight` caps the result |
 | `row({ widths, gap?, children })` | Horizontal flex row — distributes widths to children, height = max child height. `widths` is `(number \| 'flex')[]` where `'flex'` splits remaining space equally |
-| `group({ padding, gap, children })` | Nested vertical stack with its own padding (e.g. a quote box) |
+| `group({ padding, gap, minHeight?, maxHeight?, children })` | Nested vertical stack with its own padding. `minHeight` reserves space even when empty. `maxHeight` caps the result (e.g. scrollable inner area) |
 | `conditional(field, child)` | Child included only when `data[field]` is truthy |
 | `schema({ padding, gap, children })` | Top-level container defining the item structure |
 

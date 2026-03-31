@@ -124,6 +124,52 @@ describe('edge cases', () => {
     expect(height).toBe(8 + 20 + 8)
   })
 
+  test('group with minHeight', () => {
+    const s = schema({
+      padding: 0,
+      children: [group({ padding: 0, minHeight: 100, children: [fixed(20)] })],
+    })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 320, s)
+    // group content = 20, but minHeight = 100
+    expect(height).toBe(100)
+  })
+
+  test('group with maxHeight', () => {
+    const s = schema({
+      padding: 0,
+      children: [group({ padding: [20, 0, 20, 0], maxHeight: 50, children: [fixed(100)] })],
+    })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 320, s)
+    // group content = 20 + 100 + 20 = 140, but maxHeight = 50
+    expect(height).toBe(50)
+  })
+
+  test('empty group with minHeight is visible', () => {
+    const s = schema({
+      padding: 10,
+      gap: 8,
+      children: [fixed(20), group({ minHeight: 40, children: [] })],
+    })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 320, s)
+    // 10 + 20 + 8 + 40 + 10 = 88 (group visible because of minHeight)
+    expect(height).toBe(88)
+  })
+
+  test('empty group without minHeight is skipped', () => {
+    const s = schema({
+      padding: 10,
+      gap: 8,
+      children: [fixed(20), group({ children: [] })],
+    })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 320, s)
+    // 10 + 20 + 10 = 40 (group skipped, no gap)
+    expect(height).toBe(40)
+  })
+
   test('text with maxLines creates correct schema', () => {
     const child = text('body', { font: '16px Inter', lineHeight: 22, maxLines: 3 })
     expect(child.maxLines).toBe(3)

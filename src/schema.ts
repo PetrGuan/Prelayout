@@ -53,6 +53,8 @@ export type GroupChild = {
   type: 'group'
   padding: [number, number, number, number]
   gap: number
+  minHeight: number
+  maxHeight: number | null
   children: SchemaChild[]
 }
 
@@ -152,11 +154,19 @@ export function row(options: { widths: ('flex' | number)[]; gap?: number; childr
   }
 }
 
-export function group(options: { padding?: Padding; gap?: number; children: SchemaChild[] }): GroupChild {
+export function group(options: {
+  padding?: Padding
+  gap?: number
+  minHeight?: number
+  maxHeight?: number
+  children: SchemaChild[]
+}): GroupChild {
   return {
     type: 'group',
     padding: normalizePadding(options.padding ?? 0),
     gap: options.gap ?? 0,
+    minHeight: options.minHeight ?? 0,
+    maxHeight: options.maxHeight ?? null,
     children: options.children,
   }
 }

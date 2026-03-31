@@ -167,7 +167,10 @@ function layoutChild(
         visibleCount++
       }
       h += pb
-      return visibleCount > 0 ? h : null
+      if (visibleCount === 0 && child.minHeight === 0) return null
+      h = Math.max(h, child.minHeight)
+      if (child.maxHeight !== null) h = Math.min(h, child.maxHeight)
+      return h
     }
 
     case 'conditional': {
