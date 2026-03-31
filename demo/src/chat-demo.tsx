@@ -131,6 +131,11 @@ function App() {
     overscan: 5,
   })
 
+  // Re-measure when heights change (width change or new messages)
+  useEffect(() => {
+    virtualizer.measure()
+  }, [messageHeights, virtualizer])
+
   // Auto-scroll to bottom when new message added
   useEffect(() => {
     virtualizer.scrollToIndex(messages.length - 1, { align: 'end' })
