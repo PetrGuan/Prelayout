@@ -12,6 +12,9 @@ npm install
 # Type-check
 npx tsc
 
+# Run tests (requires Bun — https://bun.sh)
+bun test
+
 # Build
 npx tsc -p tsconfig.build.json
 ```

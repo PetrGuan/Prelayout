@@ -455,7 +455,7 @@ npm install prelayout @chenglou/pretext vue @tanstack/vue-virtual
 npm install prelayout @chenglou/pretext
 
 # React Native
-npm install prelayout react-native-text-size
+npm install prelayout @chenglou/pretext react-native-text-size
 ```
 
 ## Package Exports

@@ -155,7 +155,7 @@ function layoutChildRN(
       const value = prepared.data[child.field]
       if (!Array.isArray(value) || value.length === 0) return null
       // Without canvas measurement we can't predict wrapping.
-      // Return single row as a conservative estimate.
+      // Return single row as an optimistic under-estimate.
       return child.itemHeight
     }
 

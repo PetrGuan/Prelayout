@@ -124,7 +124,7 @@ function layoutChild(
           ratio = dataRatio
         }
       }
-      if (ratio === null || ratio <= 0) return null
+      if (ratio <= 0) return null
       const h = contentWidth * ratio
       return child.maxHeight !== null ? Math.min(h, child.maxHeight) : h
     }

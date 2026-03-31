@@ -37,8 +37,8 @@ export type FlexWrapChild = {
 
 export type AspectRatioChild = {
   type: 'aspect-ratio'
-  field: string // data field that holds the ratio (number), or null to use the fixed ratio
-  ratio: number | null // fixed ratio (height/width), used when field is not provided
+  field: string // data field that holds the ratio (number), or '' to use the fixed ratio
+  ratio: number // fixed ratio (height/width). Use 0 with a field to make it data-driven only
   maxHeight: number | null
 }
 

@@ -11,7 +11,7 @@
 // Note: heights and totalHeight are ComputedRef — use .value in script,
 // auto-unwrapped in templates.
 
-import { computed, type Ref, type ComputedRef } from 'vue'
+import { computed, isRef, type Ref, type ComputedRef } from 'vue'
 import type { Schema } from './schema.js'
 import { prepareItem, type PreparedItem } from './prepare.js'
 import { layoutItem } from './layout.js'
@@ -29,7 +29,7 @@ export function usePrelayout(
   schema: Ref<Schema> | Schema,
   containerWidth: Ref<number>,
 ): PrelayoutResult {
-  const schemaRef = typeof schema === 'object' && 'value' in schema ? schema : { value: schema } as Ref<Schema>
+  const schemaRef = isRef(schema) ? schema : { value: schema } as Ref<Schema>
 
   // Plain (non-reactive) cache object — not tracked by Vue's reactivity
   // system. Read inside computed without creating circular dependencies.
