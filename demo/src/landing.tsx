@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 const demos = [
   { name: 'Feature Showcase', href: './showcase.html', desc: 'All schema primitives in one page with DevTools overlay' },
   { name: 'Side-by-Side Comparison', href: './comparison.html', desc: '10,000 items — Prelayout vs naive fixed-height estimate' },
+  { name: 'Auto-Calibration', href: './auto-calibrate.html', desc: 'Wrong schema → auto-corrected by observing 10 rendered items' },
+  { name: 'CSS/Tailwind Extraction', href: './extract.html', desc: 'Type Tailwind classes → schema constants in real time' },
   { name: 'Accuracy Test', href: './accuracy.html', desc: '500 items — predicted vs actual DOM height comparison' },
   { name: 'Stress Test', href: './stress.html', desc: '28 adversarial cases — CJK, Arabic, emoji, long words' },
   { name: 'Performance Benchmark', href: './benchmark.html', desc: 'prepare() + layout() vs DOM measurement timing' },

@@ -14,6 +14,8 @@ export default defineConfig({
         showcase: resolve(__dirname, 'showcase.html'),
         stress: resolve(__dirname, 'stress.html'),
         probe: resolve(__dirname, 'probe.html'),
+        'auto-calibrate': resolve(__dirname, 'auto-calibrate.html'),
+        extract: resolve(__dirname, 'extract.html'),
       },
     },
   },
