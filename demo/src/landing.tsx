@@ -5,6 +5,7 @@ const demos = [
   { name: 'Side-by-Side Comparison', href: './comparison.html', desc: '10,000 items — Prelayout vs naive fixed-height estimate' },
   { name: 'Auto-Calibration', href: './auto-calibrate.html', desc: 'Wrong schema → auto-corrected by observing 10 rendered items' },
   { name: 'CSS/Tailwind Extraction', href: './extract.html', desc: 'Type Tailwind classes → schema constants in real time' },
+  { name: 'Virtual Table', href: './table.html', desc: '5,000 rows with flex columns — row height = tallest cell' },
   { name: 'Accordion', href: './accordion.html', desc: 'Expand/collapse with predicted heights — zero-flicker CSS transition' },
   { name: 'Masonry Layout', href: './masonry.html', desc: 'Pinterest-style grid — card heights predicted, columns assigned instantly' },
   { name: 'Chat Bubbles', href: './chat.html', desc: 'Live height prediction as you type — multilingual virtual chat' },

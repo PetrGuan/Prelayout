@@ -19,6 +19,7 @@ export default defineConfig({
         accordion: resolve(__dirname, 'accordion.html'),
         masonry: resolve(__dirname, 'masonry.html'),
         chat: resolve(__dirname, 'chat.html'),
+        table: resolve(__dirname, 'table.html'),
       },
     },
   },
