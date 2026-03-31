@@ -82,6 +82,12 @@ function layoutChild(
         return child.minHeight > 0 ? child.minHeight : null
       }
       const result = layout(preparedText, contentWidth, child.lineHeight)
+      if (result.lineCount === 0) {
+        // Text normalized to empty (e.g. pure whitespace) — treat as absent
+        // unless minHeight is set. Prevents a 0-height child from consuming
+        // a gap slot when the DOM would collapse it via margin collapsing.
+        return child.minHeight > 0 ? child.minHeight : null
+      }
       const lines = child.maxLines !== null ? Math.min(result.lineCount, child.maxLines) : result.lineCount
       return Math.max(lines * child.lineHeight, child.minHeight)
     }
