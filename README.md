@@ -344,6 +344,40 @@ npm install prelayout @chenglou/pretext react-window
 | `prelayout/ssr` | `serializePrepared()`, `deserializePrepared()`, `precomputeHeights()` |
 | `prelayout/extract` | `fromCSS`, `fromTailwind` — also re-exported from `prelayout` |
 
+## Use Case Demos
+
+Beyond virtual lists, Prelayout enables layout patterns that traditionally require DOM measurement:
+
+### Accordion — zero-flicker expand/collapse
+
+```ts
+// Know the panel height before opening → animate with CSS transition
+const panelHeight = layoutItem(prepared, containerWidth, panelSchema)
+// <div style={{ height: isOpen ? panelHeight : 0, transition: 'height 0.3s' }}>
+```
+
+No render-measure-animate cycle. The height is known before the first frame.
+
+### Masonry — instant column assignment
+
+```ts
+// Predict every card's height, assign to shortest column
+const heights = cards.map(card => layoutItem(prepared[card.id], columnWidth, cardSchema))
+// Greedy: put each card in the column with the smallest totalHeight
+```
+
+No hidden pre-render pass. Cards go straight into the right column.
+
+### Chat — live height prediction while typing
+
+```ts
+// Predict bubble height as the user types
+const draftHeight = layoutItem(prepareItem({ body: draft }, bubbleSchema), maxWidth, bubbleSchema)
+// Virtual list uses predicted heights for all messages — instant scroll-to-bottom
+```
+
+Live demos: https://petrguan.github.io/Prelayout/
+
 ## Known Limitations
 
 - **Schema must match CSS**: padding, gaps, and fixed heights are manually specified. Use `fromTailwind` / `fromCSS` to derive from tokens, `createAutoCalibrator()` for runtime correction, or `detectDrift()` for CI checks.
