@@ -18,3 +18,10 @@ export type { LayoutResult } from './layout.js'
 
 export { calibrate, detectDrift } from './calibrate.js'
 export type { CalibratedChild, CalibrationResult, DriftItem, DriftReport } from './calibrate.js'
+
+export { createAutoCalibrator } from './auto-calibrate.js'
+export type { AutoCalibrateOptions, AutoCalibrator } from './auto-calibrate.js'
+
+export { prepareItemIncremental } from './incremental.js'
+
+export { fromCSS, fromTailwind } from './extract.js'

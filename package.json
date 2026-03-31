@@ -35,6 +35,11 @@
       "types": "./dist/ssr.d.ts",
       "import": "./dist/ssr.js",
       "default": "./dist/ssr.js"
+    },
+    "./extract": {
+      "types": "./dist/extract.d.ts",
+      "import": "./dist/extract.js",
+      "default": "./dist/extract.js"
     }
   },
   "files": [

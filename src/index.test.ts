@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { schema, fixed, text, flexWrap, aspectRatio, group, conditional, layoutItem, layoutItemDetailed } from './index.js'
+import { schema, fixed, text, flexWrap, aspectRatio, group, conditional, layoutItem, layoutItemDetailed, fromCSS, fromTailwind, createAutoCalibrator } from './index.js'
 import type { PreparedItem } from './index.js'
 
 // Unit tests for the pure-arithmetic layout phase.
@@ -239,5 +239,75 @@ describe('aspectRatio layout', () => {
     const height = layoutItem(prepared, 300, s)
     // aspectRatio returns null, no gap
     expect(height).toBe(10 + 20 + 10)
+  })
+})
+
+describe('fromCSS parsers', () => {
+  test('px parses pixel values', () => {
+    expect(fromCSS.px('12px')).toBe(12)
+    expect(fromCSS.px('1.5rem')).toBe(24)
+    expect(fromCSS.px('0px')).toBe(0)
+  })
+
+  test('padding parses shorthand', () => {
+    expect(fromCSS.padding('12px')).toEqual([12, 12, 12, 12])
+    expect(fromCSS.padding('12px 16px')).toEqual([12, 16, 12, 16])
+    expect(fromCSS.padding('10px 20px 30px 40px')).toEqual([10, 20, 30, 40])
+  })
+
+  test('lineHeight parses px and unitless', () => {
+    expect(fromCSS.lineHeight('22px')).toBe(22)
+    expect(fromCSS.lineHeight('1.5', 16)).toBe(24)
+  })
+})
+
+describe('fromTailwind parsers', () => {
+  test('spacing parses Tailwind scale', () => {
+    expect(fromTailwind.spacing('p-4')).toBe(16)
+    expect(fromTailwind.spacing('gap-2')).toBe(8)
+    expect(fromTailwind.spacing('p-0')).toBe(0)
+  })
+
+  test('padding parses compound classes', () => {
+    expect(fromTailwind.padding('p-4')).toEqual([16, 16, 16, 16])
+    expect(fromTailwind.padding('px-4 py-3')).toEqual([12, 16, 12, 16])
+    expect(fromTailwind.padding('pt-3 pr-4 pb-3 pl-4')).toEqual([12, 16, 12, 16])
+  })
+
+  test('text parses Tailwind text sizes', () => {
+    expect(fromTailwind.text('text-sm')).toEqual({ fontSize: 14, lineHeight: 20 })
+    expect(fromTailwind.text('text-base')).toEqual({ fontSize: 16, lineHeight: 24 })
+  })
+
+  test('height parses Tailwind heights', () => {
+    expect(fromTailwind.height('h-10')).toBe(40)
+    expect(fromTailwind.height('h-[60px]')).toBe(60)
+  })
+
+  test('gap parses Tailwind gap', () => {
+    expect(fromTailwind.gap('gap-2')).toBe(8)
+    expect(fromTailwind.gap('gap-4')).toBe(16)
+  })
+})
+
+describe('autoCalibrator', () => {
+  test('starts uncalibrated', () => {
+    const cal = createAutoCalibrator()
+    expect(cal.isCalibrated).toBe(false)
+    expect(cal.correction).toBe(0)
+    expect(cal.observationCount).toBe(0)
+  })
+
+  test('getCorrectedHeight returns uncorrected before calibration', () => {
+    const cal = createAutoCalibrator()
+    expect(cal.getCorrectedHeight(100)).toBe(100)
+  })
+
+  test('reset clears state', () => {
+    const cal = createAutoCalibrator({ sampleSize: 1 })
+    // Can't easily mock DOM elements in unit tests, but we can test reset
+    cal.reset()
+    expect(cal.isCalibrated).toBe(false)
+    expect(cal.correction).toBe(0)
   })
 })
