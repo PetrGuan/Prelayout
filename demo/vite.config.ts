@@ -21,6 +21,7 @@ export default defineConfig({
         chat: resolve(__dirname, 'chat.html'),
         table: resolve(__dirname, 'table.html'),
         playground: resolve(__dirname, 'playground.html'),
+        truncate: resolve(__dirname, 'truncate.html'),
       },
     },
   },

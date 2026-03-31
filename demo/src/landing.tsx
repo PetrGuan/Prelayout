@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client'
 
 const demos = [
+  { name: 'Truncated Tags', href: './truncate.html', desc: 'Show tags that fit + "+N" chip — no render-measure-remove cycle' },
   { name: 'Playground', href: './playground.html', desc: 'Write schema + data, see predicted vs actual height in real time' },
   { name: 'Feature Showcase', href: './showcase.html', desc: 'All schema primitives in one page with DevTools overlay' },
   { name: 'Side-by-Side Comparison', href: './comparison.html', desc: '10,000 items — Prelayout vs naive fixed-height estimate' },
