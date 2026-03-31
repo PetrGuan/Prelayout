@@ -205,6 +205,33 @@ const { virtualizer } = useVirtualLayout({
 </script>
 ```
 
+## React Native
+
+Prelayout works in React Native with a custom text measurement function (since RN has no canvas):
+
+```ts
+import { prepareItemRN, layoutItemRN, buildGetItemLayout } from 'prelayout/react-native'
+import { measure } from 'react-native-text-size'  // or your own native measurement
+
+// Provide your own text measure function
+const measureText = async (text, font, maxWidth) => {
+  const result = await measure({ text, fontSize: 14, fontFamily: 'Inter', width: maxWidth })
+  return { width: result.width, height: result.height, lineCount: result.lineCount, lineHeight: 20 }
+}
+
+// Prepare is async (native bridge), layout is sync (pure arithmetic)
+const prepared = await prepareItemRN(item, schema, containerWidth, measureText)
+const height = layoutItemRN(prepared, containerWidth, schema)
+
+// FlatList integration via getItemLayout
+const heights = items.map(p => layoutItemRN(p, containerWidth, schema))
+const getItemLayout = buildGetItemLayout(heights)
+
+<FlatList data={items} getItemLayout={getItemLayout} renderItem={...} />
+```
+
+Same schema primitives as web — `fixed`, `text`, `row`, `flexWrap`, `aspectRatio`, `group`, `conditional` all work.
+
 ## DevTools
 
 Visual overlay that highlights predicted vs actual height differences:
@@ -376,6 +403,9 @@ npm install prelayout @chenglou/pretext react-window
 
 # Vue + Tanstack
 npm install prelayout @chenglou/pretext vue @tanstack/vue-virtual
+
+# React Native
+npm install prelayout react-native-text-size
 ```
 
 ## Package Exports
@@ -390,6 +420,7 @@ npm install prelayout @chenglou/pretext vue @tanstack/vue-virtual
 | `prelayout/ssr` | `serializePrepared()`, `deserializePrepared()`, `precomputeHeights()` |
 | `prelayout/vue` | `usePrelayout()` Vue 3 composable |
 | `prelayout/vue-virtual` | `useVirtualLayout()` for @tanstack/vue-virtual |
+| `prelayout/react-native` | `prepareItemRN()`, `layoutItemRN()`, `buildGetItemLayout()` |
 | `prelayout/extract` | `fromCSS`, `fromTailwind` — also re-exported from `prelayout` |
 
 ## Use Case Demos

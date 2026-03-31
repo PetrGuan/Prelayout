@@ -50,6 +50,11 @@
       "types": "./dist/vue-virtual.d.ts",
       "import": "./dist/vue-virtual.js",
       "default": "./dist/vue-virtual.js"
+    },
+    "./react-native": {
+      "types": "./dist/react-native.d.ts",
+      "import": "./dist/react-native.js",
+      "default": "./dist/react-native.js"
     }
   },
   "files": [
