@@ -509,7 +509,9 @@ const draftHeight = layoutItem(prepareItem({ body: draft }, bubbleSchema), maxWi
 // Virtual list uses predicted heights for all messages — instant scroll-to-bottom
 ```
 
-Live demos: https://petrguan.github.io/Prelayout/
+**Try it yourself:** [Playground](https://petrguan.github.io/Prelayout/playground.html) — edit schema + data, see predicted vs actual height in real time.
+
+All demos: https://petrguan.github.io/Prelayout/
 
 ## Known Limitations
 
