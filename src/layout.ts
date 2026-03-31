@@ -77,7 +77,10 @@ function layoutChild(
 
     case 'text': {
       const preparedText = prepared.textFields.get(child.field)
-      if (preparedText === undefined) return null
+      if (preparedText === undefined) {
+        // Field is empty or missing — still honor minHeight if set
+        return child.minHeight > 0 ? child.minHeight : null
+      }
       const result = layout(preparedText, contentWidth, child.lineHeight)
       const lines = child.maxLines !== null ? Math.min(result.lineCount, child.maxLines) : result.lineCount
       return Math.max(lines * child.lineHeight, child.minHeight)

@@ -19,6 +19,11 @@
 //
 //   Client (subsequent visits):
 //     // heights are already in the HTML — zero CLS
+//
+// IMPORTANT: serialization relies on Pretext's PreparedText being a plain
+// object with JSON-safe numeric arrays. This is not a documented Pretext API
+// guarantee and may break across Pretext version upgrades. Pin your Pretext
+// version when using SSR serialization.
 
 import type { PreparedText } from '@chenglou/pretext'
 import type { PreparedItem } from './prepare.js'

@@ -89,6 +89,7 @@ function prepareChild(
       }
       break
     }
+    case 'aspect-ratio':
     case 'fixed':
       break
   }

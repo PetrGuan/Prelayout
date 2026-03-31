@@ -3,12 +3,16 @@
 // Renders a visual diff between predicted and actual item heights.
 // Use during development to catch schema drift instantly.
 //
+// NOTE: show() captures element positions at call time (snapshot).
+// Markers do not follow scrolling — call show() again after scrolling
+// to refresh positions, or use it in a paused/dev-mode context.
+//
 // Usage:
 //   import { createDevOverlay } from 'prelayout/devtools'
 //
 //   const overlay = createDevOverlay()
 //   overlay.measure(element, predictedHeight)  // call per visible item
-//   overlay.show()                              // render the overlay
+//   overlay.show()                              // render snapshot overlay
 //   overlay.hide()                              // remove it
 //   overlay.destroy()                           // clean up
 
@@ -60,7 +64,7 @@ export function createDevOverlay(): DevOverlay {
     for (const m of measurements) {
       const absErr = Math.abs(m.diff)
       if (absErr < 1) exactMatches++
-      if (absErr < 3) closeMatches++
+      else if (absErr < 3) closeMatches++
       if (absErr > maxError) maxError = absErr
       totalError += absErr
     }

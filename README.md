@@ -33,6 +33,15 @@ const commentSchema = schema({
   ],
 })
 
+// Data shape — fields referenced by the schema above
+const item = {
+  body: 'This is a comment...',       // text('body')
+  hasQuote: true,                      // conditional('hasQuote')
+  quoteText: 'Original post...',       // text('quoteText')
+  hasImage: true,                      // conditional('hasImage')
+  tags: ['React', 'TypeScript'],       // flexWrap('tags')
+}
+
 // Prepare each item once (measures text via canvas)
 const prepared = items.map(item => prepareItem(item, commentSchema))
 
@@ -167,7 +176,7 @@ for (const item of visibleItems) {
   overlay.measure(domElement, predictedHeight)
 }
 
-overlay.show()  // renders colored borders on mismatched items + summary badge
+overlay.show()  // snapshot: renders colored borders on mismatched items + summary badge
 overlay.hide()  // remove overlay
 overlay.destroy()  // clean up
 
@@ -193,6 +202,8 @@ const height = layoutItem(restored, containerWidth, schema)
 const heightMap = precomputeHeights(preparedItems, schema, [320, 768, 1024, 1440])
 // Map { 320 → [h1, h2, ...], 768 → [h1, h2, ...], ... }
 ```
+
+> **Note:** SSR serialization relies on Pretext's `PreparedText` internal structure being JSON-safe. This is not a documented Pretext API guarantee. Pin your `@chenglou/pretext` version when using SSR serialization.
 
 ## Auto-Calibration
 
