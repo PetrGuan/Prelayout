@@ -58,6 +58,8 @@ export type ConditionalChild = {
 export type SchemaChild = FixedChild | TextChild | FlexWrapChild | AspectRatioChild | GroupChild | ConditionalChild
 
 export type Schema = {
+  /** [top, right, bottom, left] in pixels. Include border widths in these
+   *  values (e.g. 13 = 12px CSS padding + 1px border). */
   padding: [number, number, number, number]
   gap: number
   children: SchemaChild[]

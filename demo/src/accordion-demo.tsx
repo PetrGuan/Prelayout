@@ -114,7 +114,7 @@ function App() {
                 overflow: 'hidden',
                 transition: 'height 0.3s ease',
               }}>
-                <div style={{ padding: '0 20px 16px 20px' }}>
+                <div style={{ padding: '16px 20px 16px 20px' }}>
                   <div style={{ font: FONT, lineHeight: `${LINE_HEIGHT}px`, color: '#aaa' }}>
                     {item.body}
                   </div>

@@ -8,7 +8,6 @@ import { createRoot } from 'react-dom/client'
 import { useRef, useState, useEffect, useMemo } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { schema, fixed, text, prepareItem, layoutItem } from 'prelayout'
-import { usePrelayout } from 'prelayout/react'
 
 const FONT = '14px Inter, system-ui, sans-serif'
 const LINE_HEIGHT = 20
@@ -30,14 +29,6 @@ const receivedSchema = schema({
     fixed(16), // sender name
     text('body', { font: FONT, lineHeight: LINE_HEIGHT }),
     fixed(14), // timestamp
-  ],
-})
-
-// Row schema: message + vertical spacing
-const rowSchema = schema({
-  padding: [4, 0, 4, 0],
-  children: [
-    text('body', { font: FONT, lineHeight: LINE_HEIGHT }),
   ],
 })
 

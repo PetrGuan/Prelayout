@@ -41,24 +41,26 @@ export function usePrelayout(
   const cacheRef = useRef<{
     items: Record<string, unknown>[]
     prepared: PreparedItem[]
-  }>({ items: [], prepared: [] })
+    schemaKey: string
+  }>({ items: [], prepared: [], schemaKey: '' })
 
   const prepared = useMemo(() => {
     const prev = cacheRef.current
+    const schemaChanged = prev.schemaKey !== schemaKeyValue
     const next: PreparedItem[] = new Array(items.length)
 
     for (let i = 0; i < items.length; i++) {
-      // Reuse prepared handle if the item reference hasn't changed
-      if (i < prev.items.length && prev.items[i] === items[i]) {
+      // Reuse prepared handle if item reference and schema haven't changed
+      if (!schemaChanged && i < prev.items.length && prev.items[i] === items[i]) {
         next[i] = prev.prepared[i]!
       } else {
         next[i] = prepareItem(items[i]!, stableSchema)
       }
     }
 
-    cacheRef.current = { items, prepared: next }
+    cacheRef.current = { items, prepared: next, schemaKey: schemaKeyValue }
     return next
-  }, [items, stableSchema])
+  }, [items, stableSchema, schemaKeyValue])
 
   const { heights, totalHeight } = useMemo(() => {
     const h = new Array<number>(prepared.length)
