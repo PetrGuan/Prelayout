@@ -40,6 +40,16 @@
       "types": "./dist/extract.d.ts",
       "import": "./dist/extract.js",
       "default": "./dist/extract.js"
+    },
+    "./vue": {
+      "types": "./dist/vue.d.ts",
+      "import": "./dist/vue.js",
+      "default": "./dist/vue.js"
+    },
+    "./vue-virtual": {
+      "types": "./dist/vue-virtual.d.ts",
+      "import": "./dist/vue-virtual.js",
+      "default": "./dist/vue-virtual.js"
     }
   },
   "files": [
@@ -55,8 +65,10 @@
   "peerDependencies": {
     "@chenglou/pretext": ">=0.0.3",
     "@tanstack/react-virtual": ">=3.0.0",
+    "@tanstack/vue-virtual": ">=3.0.0",
+    "react": ">=18.0.0",
     "react-window": ">=1.0.0",
-    "react": ">=18.0.0"
+    "vue": ">=3.0.0"
   },
   "peerDependenciesMeta": {
     "@tanstack/react-virtual": {
@@ -67,14 +79,22 @@
     },
     "react": {
       "optional": true
+    },
+    "vue": {
+      "optional": true
+    },
+    "@tanstack/vue-virtual": {
+      "optional": true
     }
   },
   "devDependencies": {
     "@chenglou/pretext": "^0.0.3",
     "@tanstack/react-virtual": "^3.13.9",
+    "@tanstack/vue-virtual": "^3.13.23",
     "@types/bun": "latest",
     "@types/react": "^19.1.2",
     "react": "^19.1.0",
-    "typescript": "6.0.2"
+    "typescript": "6.0.2",
+    "vue": "^3.5.31"
   }
 }

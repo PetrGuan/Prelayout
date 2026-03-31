@@ -157,10 +157,48 @@ const { virtualizer } = useVirtualLayout({
 })
 ```
 
-The hooks handle memoization internally:
+The React hooks handle memoization internally:
 - Re-prepares only when items change (incremental — unchanged items reuse cached handles)
 - Re-layouts only when `containerWidth` changes
 - `schema` is stabilized by value — inline `schema({...})` is safe
+
+## Vue Integration
+
+### Core composable
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { usePrelayout } from 'prelayout/vue'
+
+const items = ref([...])
+const containerWidth = ref(480)
+
+const { getItemHeight, heights, totalHeight } = usePrelayout(items, commentSchema, containerWidth)
+</script>
+```
+
+Vue's fine-grained reactivity handles dependency tracking automatically — no manual dependency arrays.
+
+### @tanstack/vue-virtual
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { useVirtualLayout } from 'prelayout/vue-virtual'
+
+const items = ref([...])
+const containerWidth = ref(480)
+const scrollRef = ref(null)
+
+const { virtualizer } = useVirtualLayout({
+  items,
+  schema: commentSchema,
+  containerWidth,
+  getScrollElement: () => scrollRef.value,
+})
+</script>
+```
 
 ## DevTools
 
@@ -325,11 +363,14 @@ Use this in development or CI to catch CSS-schema mismatches early.
 # Core only
 npm install prelayout @chenglou/pretext
 
-# With React + Tanstack
+# React + Tanstack
 npm install prelayout @chenglou/pretext @tanstack/react-virtual
 
-# With React + react-window
+# React + react-window
 npm install prelayout @chenglou/pretext react-window
+
+# Vue + Tanstack
+npm install prelayout @chenglou/pretext vue @tanstack/vue-virtual
 ```
 
 ## Package Exports
@@ -342,6 +383,8 @@ npm install prelayout @chenglou/pretext react-window
 | `prelayout/react-window` | `usePrelayoutItemSize()` for react-window |
 | `prelayout/devtools` | `createDevOverlay()` visual debugging |
 | `prelayout/ssr` | `serializePrepared()`, `deserializePrepared()`, `precomputeHeights()` |
+| `prelayout/vue` | `usePrelayout()` Vue 3 composable |
+| `prelayout/vue-virtual` | `useVirtualLayout()` for @tanstack/vue-virtual |
 | `prelayout/extract` | `fromCSS`, `fromTailwind` — also re-exported from `prelayout` |
 
 ## Use Case Demos
