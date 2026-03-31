@@ -4,7 +4,7 @@ Component-level height prediction for virtual scroll lists. Built on [Pretext](h
 
 ## The Problem
 
-Virtual lists need item heights before rendering. Today you either assume fixed heights (inaccurate), render-then-measure (causes flicker), or use `ResizeObserver` (causes jumping).
+Virtual lists need item heights before rendering. Today you either assume fixed heights (inaccurate), use `measureElement` + `useLayoutEffect` (works well for sequential scrolling, but scroll-to-index and scrollbar size are based on estimates until items are measured), or use `ResizeObserver` (causes jumping).
 
 ## The Solution
 
