@@ -142,12 +142,16 @@ function layoutChild(
       const flexWidth = flexCount > 0 ? Math.max(0, contentWidth - fixedWidth) / flexCount : 0
 
       let maxHeight = 0
+      let hasVisible = false
       for (let i = 0; i < child.children.length; i++) {
         const cellWidth = child.widths[i] === 'flex' ? flexWidth : (child.widths[i] as number)
         const cellHeight = layoutChild(child.children[i]!, prepared, cellWidth)
-        if (cellHeight !== null && cellHeight > maxHeight) maxHeight = cellHeight
+        if (cellHeight !== null) {
+          hasVisible = true
+          if (cellHeight > maxHeight) maxHeight = cellHeight
+        }
       }
-      return maxHeight > 0 ? maxHeight : null
+      return hasVisible ? maxHeight : null
     }
 
     case 'group': {

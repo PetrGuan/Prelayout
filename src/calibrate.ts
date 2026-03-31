@@ -144,10 +144,29 @@ function buildSchemaNameMap(children: SchemaChild[]): Map<string, { type: string
         }
         break
       case 'row':
-        // Row children are handled by their individual cells
+        // Recurse into row cells — handles fixed, text, flex-wrap, conditional
         for (const cellChild of child.children) {
-          if (cellChild.type === 'text') map.set(cellChild.field, { type: 'text', height: null })
-          else if (cellChild.type === 'flex-wrap') map.set(cellChild.field, { type: 'flex-wrap', height: null })
+          switch (cellChild.type) {
+            case 'fixed':
+              map.set(`fixed:${fixedIndex}`, { type: 'fixed', height: cellChild.height })
+              fixedIndex++
+              break
+            case 'text':
+              map.set(cellChild.field, { type: 'text', height: null })
+              break
+            case 'flex-wrap':
+              map.set(cellChild.field, { type: 'flex-wrap', height: null })
+              break
+            case 'conditional':
+              if (cellChild.child.type === 'fixed') {
+                map.set(cellChild.field, { type: 'fixed', height: cellChild.child.height })
+              } else if (cellChild.child.type === 'text') {
+                map.set(cellChild.child.field, { type: 'text', height: null })
+              } else if (cellChild.child.type === 'flex-wrap') {
+                map.set(cellChild.child.field, { type: 'flex-wrap', height: null })
+              }
+              break
+          }
         }
         break
       case 'group':

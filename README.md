@@ -15,7 +15,7 @@ Prelayout extends Pretext's two-phase model from text blocks to component layout
 3. **`layoutItem()`** computes exact height via pure arithmetic (call on every resize)
 
 ```ts
-import { schema, fixed, text, flexWrap, aspectRatio, group, conditional, prepareItem, layoutItem } from 'prelayout'
+import { schema, fixed, text, flexWrap, aspectRatio, row, group, conditional, prepareItem, layoutItem } from 'prelayout'
 
 const commentSchema = schema({
   padding: [12, 16, 13, 16],
@@ -415,6 +415,27 @@ const heights = cards.map(card => layoutItem(prepared[card.id], columnWidth, car
 ```
 
 No hidden pre-render pass. Cards go straight into the right column.
+
+### Table rows — flex row with max cell height
+
+```ts
+// Each row has fixed + flex columns; row height = tallest cell
+const tableRowSchema = schema({
+  padding: 8,
+  children: [
+    row({
+      widths: [150, 200, 'flex', 100],  // fixed, fixed, flex-fill, fixed
+      gap: 8,
+      children: [
+        text('name', { font: '14px Inter', lineHeight: 20 }),
+        text('desc', { font: '14px Inter', lineHeight: 20 }),
+        text('notes', { font: '14px Inter', lineHeight: 20 }),
+        fixed(36),  // action button column
+      ],
+    }),
+  ],
+})
+```
 
 ### Chat — live height prediction while typing
 
