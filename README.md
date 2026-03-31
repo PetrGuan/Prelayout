@@ -1,6 +1,10 @@
 # Prelayout
 
-Component-level height prediction for virtual scroll lists. Built on [Pretext](https://github.com/chenglou/pretext).
+Experiments and practical tools built on [Pretext](https://github.com/chenglou/pretext) — exploring what's possible when you can predict text layout without the DOM.
+
+> **What is Pretext?** A library that replicates browser text line-breaking in JavaScript using `canvas.measureText()`. It predicts how text wraps at any width with sub-pixel accuracy, ~100x faster than DOM measurement.
+>
+> **What is Prelayout?** A collection of experiments that extend Pretext's idea from text blocks to real-world use cases: virtual list height prediction, truncated tag fitting, accordion animations, masonry layouts, SSR height injection, and more.
 
 ## Live Demos
 
@@ -301,26 +305,45 @@ overlay.destroy()  // clean up
 const { exactMatches, totalItems, avgError, maxError } = overlay.summary()
 ```
 
-## SSR Support
+## SSR Height Prediction (Experimental)
 
-Pre-compute heights on the server to eliminate Cumulative Layout Shift (CLS):
+Run Pretext on the server to predict text heights at multiple breakpoints — inject into HTML for zero CLS:
+
+```ts
+import { init, predictHeight, generateMediaQueryCSS } from 'prelayout/ssr/predict'
+
+init()  // install OffscreenCanvas polyfill (call once at server startup)
+
+const { heights } = predictHeight({
+  text: article.body,
+  font: '16px Inter',
+  lineHeight: 24,
+  breakpoints: [375, 768, 1024],
+  horizontalPadding: 32,
+})
+
+const css = generateMediaQueryCSS('.article-body', heights, [375, 768, 1024])
+// .article-body{height:120px}
+// @media(min-width:768px){.article-body{height:72px}}
+```
+
+**Accuracy:** Exact for Latin text (0px error). CJK and emoji are unreliable due to `@napi-rs/canvas` (Skia) vs browser engine differences. See the [PreSSR experiment](https://github.com/PetrGuan/PreSSR) for full stress test results.
+
+Requires `@napi-rs/canvas` (installed as a dev dependency).
+
+## SSR Serialization
+
+Alternatively, serialize PreparedItems from the client for server-side layout:
 
 ```ts
 import { serializePrepared, deserializePrepared, precomputeHeights } from 'prelayout/ssr'
 
-// Client: serialize after prepare
 const serialized = serializePrepared(prepared)
-
-// Server: deserialize and layout (pure arithmetic, no canvas)
 const restored = deserializePrepared(serialized, data)
 const height = layoutItem(restored, containerWidth, schema)
-
-// Or pre-compute for multiple breakpoints at once
-const heightMap = precomputeHeights(preparedItems, schema, [320, 768, 1024, 1440])
-// Map { 320 → [h1, h2, ...], 768 → [h1, h2, ...], ... }
 ```
 
-> **Note:** SSR serialization relies on Pretext's `PreparedText` internal structure being JSON-safe. This is not a documented Pretext API guarantee. Pin your `@chenglou/pretext` version when using SSR serialization.
+> **Note:** Relies on Pretext's internal PreparedText structure being JSON-safe. Pin your Pretext version.
 
 ## Runtime Auto-Calibration
 
@@ -472,6 +495,7 @@ npm install prelayout @chenglou/pretext react-native-text-size
 | `prelayout/vue-virtual` | `useVirtualLayout()` for @tanstack/vue-virtual |
 | `prelayout/svelte` | `createPrelayout()`, `computeItemHeight()` for Svelte 5 runes |
 | `prelayout/react-native` | `prepareItemRN()`, `prepareItemsRN()`, `layoutItemRN()`, `buildGetItemLayout()` |
+| `prelayout/ssr/predict` | `init()`, `predictHeight()`, `generateMediaQueryCSS()` — server-side height prediction (experimental, Latin-only) |
 | `prelayout/extract` | `fromCSS`, `fromTailwind` — also re-exported from `prelayout` |
 
 ## Use Case Demos
@@ -551,6 +575,7 @@ All demos: https://petrguan.github.io/Prelayout/
 - **Vertical lists only**: Prelayout computes heights, not widths. Horizontal virtual lists are not supported.
 - **flexWrap in React Native**: Falls back to single-row estimate since RN has no canvas for tag width measurement.
 - **SSR serialization is fragile**: `serializePrepared` / `deserializePrepared` depend on Pretext's internal PreparedText structure being JSON-safe. This is not a documented Pretext API guarantee — pin your Pretext version.
+- **SSR prediction is Latin-only**: Server-side height prediction via `@napi-rs/canvas` (Skia) is accurate for Latin text but unreliable for CJK and emoji due to engine differences. See [stress test results](https://github.com/PetrGuan/PreSSR).
 - **No CSS auto-extraction**: You cannot point Prelayout at a React/Vue/Svelte component and have it automatically generate a schema. The structure must be declared manually or with `fromTailwind` / `fromCSS` helpers.
 
 ## License

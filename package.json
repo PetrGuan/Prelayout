@@ -60,6 +60,11 @@
       "types": "./dist/svelte.d.ts",
       "import": "./dist/svelte.js",
       "default": "./dist/svelte.js"
+    },
+    "./ssr/predict": {
+      "types": "./dist/ssr/index.d.ts",
+      "import": "./dist/ssr/index.js",
+      "default": "./dist/ssr/index.js"
     }
   },
   "files": [
@@ -77,10 +82,10 @@
     "@tanstack/react-virtual": ">=3.0.0",
     "@tanstack/vue-virtual": ">=3.0.0",
     "react": ">=18.0.0",
-    "react-window": ">=1.0.0",
-    "vue": ">=3.0.0",
     "react-native-text-size": ">=4.0.0",
-    "svelte": ">=5.0.0"
+    "react-window": ">=1.0.0",
+    "svelte": ">=5.0.0",
+    "vue": ">=3.0.0"
   },
   "peerDependenciesMeta": {
     "@tanstack/react-virtual": {
@@ -107,6 +112,7 @@
   },
   "devDependencies": {
     "@chenglou/pretext": "^0.0.3",
+    "@napi-rs/canvas": "^0.1.97",
     "@tanstack/react-virtual": "^3.13.9",
     "@tanstack/vue-virtual": "^3.13.23",
     "@types/bun": "latest",
