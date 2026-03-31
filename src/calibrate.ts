@@ -143,6 +143,13 @@ function buildSchemaNameMap(children: SchemaChild[]): Map<string, { type: string
           map.set(child.child.field, { type: 'flex-wrap', height: null })
         }
         break
+      case 'row':
+        // Row children are handled by their individual cells
+        for (const cellChild of child.children) {
+          if (cellChild.type === 'text') map.set(cellChild.field, { type: 'text', height: null })
+          else if (cellChild.type === 'flex-wrap') map.set(cellChild.field, { type: 'flex-wrap', height: null })
+        }
+        break
       case 'group':
         // Groups are opaque to drift detection — their internal padding
         // is not separately annotated in the DOM

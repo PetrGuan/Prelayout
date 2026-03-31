@@ -97,6 +97,13 @@ function updateChild(
       break
     }
 
+    case 'row': {
+      for (const cellChild of child.children) {
+        updateChild(cellChild, prevData, newData, textFields, flexFields)
+      }
+      break
+    }
+
     case 'aspect-ratio':
     case 'fixed':
       break
@@ -114,6 +121,11 @@ function cleanupChild(
       break
     case 'flex-wrap':
       flexFields.delete(child.field)
+      break
+    case 'row':
+      for (const cellChild of child.children) {
+        cleanupChild(cellChild, textFields, flexFields)
+      }
       break
     case 'group':
       for (const grandchild of child.children) {
@@ -156,6 +168,12 @@ function forceUpdateChild(
           widths.push(ctx.measureText(String(value[i])).width + hPad)
         }
         flexFields.set(child.field, widths)
+      }
+      break
+    }
+    case 'row': {
+      for (const cellChild of child.children) {
+        forceUpdateChild(cellChild, data, textFields, flexFields)
       }
       break
     }

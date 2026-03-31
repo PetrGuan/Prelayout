@@ -63,6 +63,12 @@ function prepareChild(
       }
       break
     }
+    case 'row': {
+      for (const cellChild of child.children) {
+        prepareChild(cellChild, data, textFields, flexFields)
+      }
+      break
+    }
     case 'group': {
       for (const grandchild of child.children) {
         prepareChild(grandchild, data, textFields, flexFields)

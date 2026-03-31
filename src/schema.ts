@@ -42,6 +42,13 @@ export type AspectRatioChild = {
   maxHeight: number | null
 }
 
+export type RowChild = {
+  type: 'row'
+  widths: ('flex' | number)[]
+  gap: number
+  children: SchemaChild[]
+}
+
 export type GroupChild = {
   type: 'group'
   padding: [number, number, number, number]
@@ -55,7 +62,7 @@ export type ConditionalChild = {
   child: SchemaChild
 }
 
-export type SchemaChild = FixedChild | TextChild | FlexWrapChild | AspectRatioChild | GroupChild | ConditionalChild
+export type SchemaChild = FixedChild | TextChild | FlexWrapChild | AspectRatioChild | RowChild | GroupChild | ConditionalChild
 
 export type Schema = {
   /** [top, right, bottom, left] in pixels. Include border widths in these
@@ -130,6 +137,18 @@ export function aspectRatio(ratio: number, options?: {
     field: options?.field ?? '',
     ratio,
     maxHeight: options?.maxHeight ?? null,
+  }
+}
+
+export function row(options: { widths: ('flex' | number)[]; gap?: number; children: SchemaChild[] }): RowChild {
+  if (options.widths.length !== options.children.length) {
+    throw new Error(`row() widths length (${options.widths.length}) must match children length (${options.children.length})`)
+  }
+  return {
+    type: 'row',
+    widths: options.widths,
+    gap: options.gap ?? 0,
+    children: options.children,
   }
 }
 

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { schema, fixed, text, flexWrap, aspectRatio, group, conditional, layoutItem, layoutItemDetailed, fromCSS, fromTailwind, createAutoCalibrator } from './index.js'
+import { schema, fixed, text, flexWrap, aspectRatio, row, group, conditional, layoutItem, layoutItemDetailed, fromCSS, fromTailwind, createAutoCalibrator } from './index.js'
 import type { PreparedItem } from './index.js'
 
 // Unit tests for the pure-arithmetic layout phase.
@@ -287,6 +287,74 @@ describe('fromTailwind parsers', () => {
   test('gap parses Tailwind gap', () => {
     expect(fromTailwind.gap('gap-2')).toBe(8)
     expect(fromTailwind.gap('gap-4')).toBe(16)
+  })
+})
+
+describe('row layout', () => {
+  test('row takes max height of children with fixed widths', () => {
+    // 3 columns: 100px, 150px, 50px — all fixed height
+    // Row height = max(30, 50, 20) = 50
+    const s = schema({
+      padding: 0,
+      children: [row({ widths: [100, 150, 50], gap: 8, children: [fixed(30), fixed(50), fixed(20)] })],
+    })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 320, s)
+    expect(height).toBe(50)
+  })
+
+  test('row with flex distributes remaining width', () => {
+    // Container 320px, two fixed 100px columns + gap 8 + flex column
+    // Fixed space: 100 + 8 + 100 + 8 = 216. Flex gets 320 - 216 = 104px
+    // All children are fixed(40), so max height = 40
+    const s = schema({
+      padding: 0,
+      children: [row({ widths: [100, 'flex', 100], gap: 8, children: [fixed(40), fixed(40), fixed(40)] })],
+    })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 320, s)
+    expect(height).toBe(40)
+  })
+
+  test('row with all null children returns null', () => {
+    const s = schema({
+      padding: 10,
+      gap: 8,
+      children: [
+        fixed(20),
+        row({
+          widths: [100, 200],
+          gap: 8,
+          children: [
+            text('col1', { font: '14px Inter', lineHeight: 20 }),
+            text('col2', { font: '14px Inter', lineHeight: 20 }),
+          ],
+        }),
+      ],
+    })
+    // No text fields prepared → both text children return null → row returns null
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 320, s)
+    expect(height).toBe(10 + 20 + 10) // row skipped, no gap
+  })
+
+  test('row with padding on outer schema', () => {
+    const s = schema({
+      padding: [8, 16, 8, 16],
+      gap: 4,
+      children: [
+        fixed(20),
+        row({ widths: [100, 100], gap: 8, children: [fixed(30), fixed(50)] }),
+      ],
+    })
+    const prepared = mockPreparedItem()
+    const height = layoutItem(prepared, 320, s)
+    // 8 + 20 + 4 + 50 + 8 = 90
+    expect(height).toBe(90)
+  })
+
+  test('row widths/children length mismatch throws', () => {
+    expect(() => row({ widths: [100, 200], gap: 0, children: [fixed(20)] })).toThrow()
   })
 })
 

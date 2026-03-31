@@ -129,6 +129,27 @@ function layoutChild(
       return child.maxHeight !== null ? Math.min(h, child.maxHeight) : h
     }
 
+    case 'row': {
+      // Horizontal layout: distribute widths, take max child height.
+      // 'flex' children split the remaining space equally.
+      const totalGap = Math.max(0, child.children.length - 1) * child.gap
+      let fixedWidth = totalGap
+      let flexCount = 0
+      for (const w of child.widths) {
+        if (w === 'flex') flexCount++
+        else fixedWidth += w
+      }
+      const flexWidth = flexCount > 0 ? Math.max(0, contentWidth - fixedWidth) / flexCount : 0
+
+      let maxHeight = 0
+      for (let i = 0; i < child.children.length; i++) {
+        const cellWidth = child.widths[i] === 'flex' ? flexWidth : (child.widths[i] as number)
+        const cellHeight = layoutChild(child.children[i]!, prepared, cellWidth)
+        if (cellHeight !== null && cellHeight > maxHeight) maxHeight = cellHeight
+      }
+      return maxHeight > 0 ? maxHeight : null
+    }
+
     case 'group': {
       const [pt, pr, pb, pl] = child.padding
       const innerWidth = Math.max(0, contentWidth - pl - pr)
