@@ -209,22 +209,28 @@ const { virtualizer } = useVirtualLayout({
 
 ```svelte
 <script>
-  import { computeHeights } from 'prelayout/svelte'
+  import { createPrelayout, computeItemHeight } from 'prelayout/svelte'
 
   let items = $state([...])
   let containerWidth = $state(480)
 
+  // Create a prelayout instance (each instance has its own cache — safe for multiple lists)
+  const prelayout = createPrelayout()
+
   // $derived automatically recomputes when items or width change
-  let result = $derived(computeHeights(items, commentSchema, containerWidth))
+  let result = $derived(prelayout.computeHeights(items, commentSchema, containerWidth))
 
   // Use with @tanstack/svelte-virtual or any virtual list
   // result.getItemHeight(index) — returns height for item at index
   // result.heights — full height array
   // result.totalHeight — sum of all heights
+
+  // For single-item measurement (no caching):
+  // const height = computeItemHeight(item, schema, width)
 </script>
 ```
 
-Internally caches PreparedItem handles — unchanged items skip canvas measurement.
+Each `createPrelayout()` call creates an independent cache — safe for multiple lists on the same page.
 
 ## React Native
 
@@ -446,7 +452,7 @@ npm install prelayout react-native-text-size
 | `prelayout/ssr` | `serializePrepared()`, `deserializePrepared()`, `precomputeHeights()` |
 | `prelayout/vue` | `usePrelayout()` Vue 3 composable |
 | `prelayout/vue-virtual` | `useVirtualLayout()` for @tanstack/vue-virtual |
-| `prelayout/svelte` | `computeHeights()`, `computeItemHeight()` for Svelte 5 runes |
+| `prelayout/svelte` | `createPrelayout()`, `computeItemHeight()` for Svelte 5 runes |
 | `prelayout/react-native` | `prepareItemRN()`, `prepareItemsRN()`, `layoutItemRN()`, `buildGetItemLayout()` |
 | `prelayout/extract` | `fromCSS`, `fromTailwind` — also re-exported from `prelayout` |
 

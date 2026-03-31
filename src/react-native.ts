@@ -44,17 +44,13 @@ export async function prepareItemRN(
   return { childHeights, data, preparedAtWidth: containerWidth }
 }
 
-export async function prepareItemsRN(
+export function prepareItemsRN(
   items: Record<string, unknown>[],
   schema: Schema,
   containerWidth: number,
   measureText: RNTextMeasureFn,
 ): Promise<RNPreparedItem[]> {
-  const results: RNPreparedItem[] = []
-  for (const item of items) {
-    results.push(await prepareItemRN(item, schema, containerWidth, measureText))
-  }
-  return results
+  return Promise.all(items.map(item => prepareItemRN(item, schema, containerWidth, measureText)))
 }
 
 async function measureChildren(

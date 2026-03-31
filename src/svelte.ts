@@ -1,21 +1,18 @@
-// Svelte adapter for Prelayout.
+// Svelte 5 adapter for Prelayout.
 //
-// Provides createPrelayout() — a factory that returns reactive getters
-// for use with Svelte 5 runes ($state, $derived).
+// Provides createPrelayout() factory and standalone computeItemHeight().
 //
 // Usage in a .svelte.ts or .svelte file:
 //
 //   import { createPrelayout } from 'prelayout/svelte'
 //
 //   const prelayout = createPrelayout()
-//   const heights = $derived(prelayout.computeHeights(items, schema, containerWidth))
-//   const getItemHeight = (index: number) => heights[index] ?? 0
+//   let result = $derived(prelayout.computeHeights(items, schema, containerWidth))
+//   // result.heights, result.totalHeight, result.getItemHeight(index)
 //
-// Since Svelte 5 runes ($state, $derived) are compile-time macros that only
-// work in .svelte.ts files, this module exports plain functions that compute
-// heights from current values. The caller wraps them in $derived for reactivity.
-//
-// Also provides a batch prepare + layout helper for direct use without runes.
+// Each createPrelayout() call creates an independent cache — safe for
+// multiple lists on the same page. Unchanged items (by reference) skip
+// canvas measurement.
 
 import type { Schema } from './schema.js'
 import { prepareItem, type PreparedItem } from './prepare.js'
@@ -27,59 +24,66 @@ export type PrelayoutBatchResult = {
   getItemHeight: (index: number) => number
 }
 
-// Incremental cache — shared across calls. Items with the same reference
-// reuse their PreparedItem handle.
-const cache = {
-  items: [] as Record<string, unknown>[],
-  prepared: [] as PreparedItem[],
-  schemaKey: '',
-}
-
 /**
- * Compute heights for all items at a given width.
- * Call this inside $derived() for Svelte 5 reactivity.
- *
- * Internally caches PreparedItem handles — unchanged items (by reference)
- * skip canvas measurement.
+ * Create a Prelayout instance with its own cache.
+ * Each call returns an independent instance — safe for multiple lists.
  */
-export function computeHeights(
-  items: Record<string, unknown>[],
-  schema: Schema,
-  containerWidth: number,
-): PrelayoutBatchResult {
-  const schemaKey = JSON.stringify(schema)
-  const schemaChanged = cache.schemaKey !== schemaKey
+export function createPrelayout() {
+  // Per-instance cache — not shared across lists
+  let cachedItems: Record<string, unknown>[] = []
+  let cachedPrepared: PreparedItem[] = []
+  let cachedSchemaRef: Schema | null = null
+  let cachedSchemaKey = ''
 
-  const prepared: PreparedItem[] = new Array(items.length)
-  for (let i = 0; i < items.length; i++) {
-    if (!schemaChanged && i < cache.items.length && cache.items[i] === items[i]) {
-      prepared[i] = cache.prepared[i]!
-    } else {
-      prepared[i] = prepareItem(items[i]!, schema)
+  /**
+   * Compute heights for all items at a given width.
+   * Call inside $derived() for Svelte 5 reactivity.
+   */
+  function computeHeights(
+    items: Record<string, unknown>[],
+    schema: Schema,
+    containerWidth: number,
+  ): PrelayoutBatchResult {
+    // Only re-serialize schema when the reference changes
+    let schemaChanged = false
+    if (schema !== cachedSchemaRef) {
+      const key = JSON.stringify(schema)
+      schemaChanged = key !== cachedSchemaKey
+      cachedSchemaKey = key
+      cachedSchemaRef = schema
+    }
+
+    const prepared: PreparedItem[] = new Array(items.length)
+    for (let i = 0; i < items.length; i++) {
+      if (!schemaChanged && i < cachedItems.length && cachedItems[i] === items[i]) {
+        prepared[i] = cachedPrepared[i]!
+      } else {
+        prepared[i] = prepareItem(items[i]!, schema)
+      }
+    }
+
+    cachedItems = items
+    cachedPrepared = prepared
+
+    const heights: number[] = new Array(items.length)
+    let totalHeight = 0
+    for (let i = 0; i < prepared.length; i++) {
+      heights[i] = layoutItem(prepared[i]!, containerWidth, schema)
+      totalHeight += heights[i]!
+    }
+
+    return {
+      heights,
+      totalHeight,
+      getItemHeight: (index: number) => heights[index] ?? 0,
     }
   }
 
-  cache.items = items
-  cache.prepared = prepared
-  cache.schemaKey = schemaKey
-
-  const heights: number[] = new Array(items.length)
-  let totalHeight = 0
-  for (let i = 0; i < prepared.length; i++) {
-    heights[i] = layoutItem(prepared[i]!, containerWidth, schema)
-    totalHeight += heights[i]!
-  }
-
-  return {
-    heights,
-    totalHeight,
-    getItemHeight: (index: number) => heights[index] ?? 0,
-  }
+  return { computeHeights }
 }
 
 /**
- * Prepare and layout a single item. Useful for one-off measurements
- * without the batch caching.
+ * Compute height for a single item. No caching — useful for one-off measurements.
  */
 export function computeItemHeight(
   data: Record<string, unknown>,
