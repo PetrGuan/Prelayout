@@ -31,7 +31,10 @@ export type CalibrationResult = {
 
 /** Extract layout constants from a rendered DOM element.
  *  Returned padding values include border widths (matching the schema convention
- *  where padding should include borders, e.g. 13 = 12px padding + 1px border). */
+ *  where padding should include borders, e.g. 13 = 12px padding + 1px border).
+ *  Only direct children of the element with data-pl attributes are captured.
+ *  Nested data-pl nodes inside groups are ignored — annotate the group
+ *  container itself, not its inner children. */
 export function calibrate(element: HTMLElement): CalibrationResult {
   const style = getComputedStyle(element)
   const pt = parseFloat(style.paddingTop) || 0

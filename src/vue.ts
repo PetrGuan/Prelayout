@@ -5,17 +5,22 @@
 //   - Re-layouts only when containerWidth changes
 //   - Returns getItemHeight(index) for use with any virtual list library
 //
-// Vue's fine-grained reactivity (ref/computed/watch) handles dependency
+// Vue's fine-grained reactivity (ref/computed) handles dependency
 // tracking automatically — no manual dependency arrays needed.
+//
+// Note: heights and totalHeight are ComputedRef — use .value in script,
+// auto-unwrapped in templates.
 
-import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
+import { computed, type Ref, type ComputedRef } from 'vue'
 import type { Schema } from './schema.js'
 import { prepareItem, type PreparedItem } from './prepare.js'
 import { layoutItem } from './layout.js'
 
 export type PrelayoutResult = {
   getItemHeight: (index: number) => number
+  /** ComputedRef — use .value in script, auto-unwrapped in templates */
   heights: ComputedRef<number[]>
+  /** ComputedRef — use .value in script, auto-unwrapped in templates */
   totalHeight: ComputedRef<number>
 }
 
@@ -24,35 +29,39 @@ export function usePrelayout(
   schema: Ref<Schema> | Schema,
   containerWidth: Ref<number>,
 ): PrelayoutResult {
-  const schemaRef = typeof schema === 'object' && 'value' in schema ? schema : ref(schema) as Ref<Schema>
+  const schemaRef = typeof schema === 'object' && 'value' in schema ? schema : { value: schema } as Ref<Schema>
 
-  // Cache previous prepared items for incremental updates
-  const prevItems = ref<Record<string, unknown>[]>([])
-  const prevPrepared = ref<PreparedItem[]>([])
+  // Plain (non-reactive) cache object — not tracked by Vue's reactivity
+  // system. Read inside computed without creating circular dependencies.
+  const cache = {
+    items: [] as Record<string, unknown>[],
+    prepared: [] as PreparedItem[],
+    schemaKey: '',
+  }
 
   const prepared = computed<PreparedItem[]>(() => {
     const currentItems = items.value
     const currentSchema = schemaRef.value
-    const prev = prevItems.value
-    const prevPrep = prevPrepared.value
+    const currentSchemaKey = JSON.stringify(currentSchema)
+    const schemaChanged = cache.schemaKey !== currentSchemaKey
     const next: PreparedItem[] = new Array(currentItems.length)
 
     for (let i = 0; i < currentItems.length; i++) {
-      if (i < prev.length && prev[i] === currentItems[i]) {
-        next[i] = prevPrep[i]!
+      if (!schemaChanged && i < cache.items.length && cache.items[i] === currentItems[i]) {
+        next[i] = cache.prepared[i]!
       } else {
         next[i] = prepareItem(currentItems[i]!, currentSchema)
       }
     }
 
+    // Update cache synchronously before returning — plain object mutation,
+    // no reactive side effects
+    cache.items = currentItems
+    cache.prepared = next
+    cache.schemaKey = currentSchemaKey
+
     return next
   })
-
-  // Update the cache after computed runs
-  watch(prepared, (newPrepared) => {
-    prevItems.value = items.value
-    prevPrepared.value = newPrepared
-  }, { flush: 'sync' })
 
   const heights = computed<number[]>(() => {
     const width = containerWidth.value

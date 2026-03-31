@@ -6,6 +6,7 @@
 //
 // Only vertical lists are supported. Prelayout computes heights, not widths.
 
+import { computed } from 'vue'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { usePrelayout } from './vue.js'
 import type { Schema } from './schema.js'
@@ -23,12 +24,15 @@ export function useVirtualLayout(options: VirtualLayoutOptions) {
   const { items, schema, containerWidth, getScrollElement, overscan } = options
   const { getItemHeight, heights, totalHeight } = usePrelayout(items, schema, containerWidth)
 
-  const virtualizer = useVirtualizer({
+  // Pass a reactive computed ref so the virtualizer picks up count/height changes
+  const virtualizerOptions = computed(() => ({
     count: items.value.length,
     getScrollElement,
     estimateSize: getItemHeight,
     overscan,
-  })
+  }))
+
+  const virtualizer = useVirtualizer(virtualizerOptions)
 
   return { virtualizer, getItemHeight, heights, totalHeight }
 }

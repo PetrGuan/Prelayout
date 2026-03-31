@@ -175,6 +175,10 @@ const items = ref([...])
 const containerWidth = ref(480)
 
 const { getItemHeight, heights, totalHeight } = usePrelayout(items, commentSchema, containerWidth)
+
+// getItemHeight(index) — plain function, returns number
+// heights.value — ComputedRef<number[]>, use .value in script
+// totalHeight.value — ComputedRef<number>, auto-unwrapped in templates
 </script>
 ```
 
