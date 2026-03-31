@@ -26,8 +26,8 @@ export type FlexWrapChild = {
   type: 'flex-wrap'
   field: string
   font: string
-  itemHeight: number
-  itemPadding: [number, number] // [horizontal, vertical] padding per item
+  itemHeight: number // total rendered height per item (includes any vertical padding)
+  itemHorizontalPadding: number // left + right padding added to text width per item
   rowGap: number
   columnGap: number
 }
@@ -72,24 +72,26 @@ export function fixed(height: number): FixedChild {
 }
 
 export function text(field: string, options: { font: string; lineHeight: number; maxLines?: number }): TextChild {
-  return { type: 'text', field, font: options.font, lineHeight: options.lineHeight, maxLines: options.maxLines ?? null }
+  const maxLines = options.maxLines ?? null
+  if (maxLines !== null && maxLines < 1) {
+    throw new Error('maxLines must be >= 1')
+  }
+  return { type: 'text', field, font: options.font, lineHeight: options.lineHeight, maxLines }
 }
 
 export function flexWrap(field: string, options: {
   font: string
   itemHeight: number
-  itemPadding?: number | [number, number]
+  itemPadding?: number
   rowGap?: number
   columnGap?: number
 }): FlexWrapChild {
-  const pad = options.itemPadding ?? 0
-  const itemPadding: [number, number] = typeof pad === 'number' ? [pad, pad] : pad
   return {
     type: 'flex-wrap',
     field,
     font: options.font,
     itemHeight: options.itemHeight,
-    itemPadding,
+    itemHorizontalPadding: (options.itemPadding ?? 0) * 2,
     rowGap: options.rowGap ?? 0,
     columnGap: options.columnGap ?? 0,
   }

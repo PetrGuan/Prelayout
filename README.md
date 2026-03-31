@@ -51,10 +51,11 @@ Phase 1 — prepare (one-time per item):
 
 Phase 2 — layout (on every resize):
   Walks the schema children:
-    fixed(40)     → add 40
-    text('body')  → Pretext replays line-breaking with cached widths (pure addition)
-    group(...)    → recurse with inner padding
-    conditional() → check data field, skip or include
+    fixed(40)       → add 40
+    text('body')    → Pretext replays line-breaking with cached widths (pure addition)
+    flexWrap('tags')→ greedy row packing with cached tag widths (same algorithm)
+    group(...)      → recurse with inner padding
+    conditional()   → check data field, skip or include
   Sum up with padding + gaps → exact height
 ```
 
@@ -89,12 +90,15 @@ Accuracy depends on the schema correctly describing your component's layout cons
 | Primitive | Description |
 |-----------|-------------|
 | `fixed(height)` | Constant-height element (avatar row, button bar, divider) |
-| `text(field, { font, lineHeight })` | Text field measured by Pretext — wraps based on width |
+| `text(field, { font, lineHeight, maxLines? })` | Text field measured by Pretext — wraps based on width. Optional `maxLines` caps line count (matches CSS `-webkit-line-clamp`) |
+| `flexWrap(field, { font, itemHeight, itemPadding?, columnGap?, rowGap? })` | Tag/chip row that wraps based on width. `field` points to a `string[]` in data. Each item's text is measured via canvas, then greedy-packed into rows |
 | `group({ padding, gap, children })` | Nested vertical stack with its own padding (e.g. a quote box) |
 | `conditional(field, child)` | Child included only when `data[field]` is truthy |
 | `schema({ padding, gap, children })` | Top-level container defining the item structure |
 
 `padding` accepts a number (uniform) or `[top, right, bottom, left]`. Include borders in padding (e.g. `13` = 12px padding + 1px border).
+
+`itemPadding` in `flexWrap` is the horizontal padding per tag (applied on both sides). `itemHeight` is the total rendered height including any vertical padding.
 
 ## React Integration
 
@@ -150,9 +154,7 @@ npm install prelayout @chenglou/pretext @tanstack/react-virtual
 ## Known Limitations
 
 - **Schema must match CSS**: padding, gaps, and fixed heights are manually specified. If CSS changes but the schema doesn't, heights will drift.
-- **No `-webkit-line-clamp` support**: text is always fully wrapped. Clamped text will produce overestimated heights.
 - **`system-ui` font**: canvas and DOM can resolve different fonts on macOS. Use named fonts (Inter, Helvetica, etc.).
-- **No flex-wrap**: tag rows that wrap based on width are not yet supported as a schema primitive.
 
 ## License
 

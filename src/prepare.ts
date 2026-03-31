@@ -67,7 +67,7 @@ function prepareChild(
       if (Array.isArray(value) && value.length > 0) {
         const ctx = getMeasureContext()
         ctx.font = child.font
-        const hPad = child.itemPadding[0] * 2 // left + right
+        const hPad = child.itemHorizontalPadding
         const widths: number[] = []
         for (let i = 0; i < value.length; i++) {
           const text = String(value[i])

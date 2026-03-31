@@ -5,8 +5,7 @@
 //   - Re-layouts only when containerWidth changes
 //   - Returns getItemHeight(index) — O(1) lookup into cached heights
 //
-// IMPORTANT: `schema` must be a stable reference (module-level constant or
-// wrapped in useMemo). Inline `schema({...})` in render will defeat memoization.
+// Schema is stabilized by value — inline `schema({...})` in render is safe.
 
 import { useMemo, useRef, useCallback } from 'react'
 import type { Schema } from './schema.js'
@@ -19,18 +18,23 @@ export type PrelayoutResult = {
   totalHeight: number
 }
 
-function schemaKey(s: Schema): string {
-  return JSON.stringify(s)
-}
-
 export function usePrelayout(
   items: Record<string, unknown>[],
   schema: Schema,
   containerWidth: number,
 ): PrelayoutResult {
-  // Stabilize schema by value so inline `schema({...})` doesn't bust caches.
+  // Stabilize schema by value. Cache the JSON key in a ref so we only
+  // serialize when the object reference changes, not on every render.
+  const schemaRef = useRef<{ obj: Schema; key: string }>({ obj: schema, key: '' })
+  if (schemaRef.current.obj !== schema) {
+    schemaRef.current = { obj: schema, key: JSON.stringify(schema) }
+  } else if (schemaRef.current.key === '') {
+    schemaRef.current.key = JSON.stringify(schema)
+  }
+  const schemaKeyValue = schemaRef.current.key
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const stableSchema = useMemo(() => schema, [schemaKey(schema)])
+  const stableSchema = useMemo(() => schema, [schemaKeyValue])
 
   // Track previous items to do incremental prepare.
   // Only re-prepare items that actually changed.
