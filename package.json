@@ -73,7 +73,8 @@
     "@tanstack/vue-virtual": ">=3.0.0",
     "react": ">=18.0.0",
     "react-window": ">=1.0.0",
-    "vue": ">=3.0.0"
+    "vue": ">=3.0.0",
+    "react-native-text-size": ">=4.0.0"
   },
   "peerDependenciesMeta": {
     "@tanstack/react-virtual": {
@@ -89,6 +90,9 @@
       "optional": true
     },
     "@tanstack/vue-virtual": {
+      "optional": true
+    },
+    "react-native-text-size": {
       "optional": true
     }
   },

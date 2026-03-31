@@ -3,42 +3,29 @@
 // React Native has no canvas.measureText() — text measurement requires
 // a native bridge. This adapter provides:
 //
-//   1. prepareItemRN() — measures text via react-native-text-size (async)
-//   2. layoutItem() — same pure arithmetic as web (reused directly)
-//   3. usePrelayoutRN() — React Native hook with async prepare
-//   4. FlatList/FlashList integration via getItemLayout
+//   1. prepareItemRN() — measures text at a specific width (async, native bridge)
+//   2. layoutItemRN() — sums prepared heights with padding/gaps (sync, pure arithmetic)
+//   3. buildGetItemLayout() — FlatList/FlashList getItemLayout helper
 //
-// Prerequisites:
-//   npm install react-native-text-size
-//
-// The key difference from web: prepare is async (native bridge call),
-// but layout is still sync pure arithmetic.
+// IMPORTANT: Unlike web where prepare() is width-independent and layout()
+// takes a width, RN's prepareItemRN() bakes in the width during measurement.
+// If the width changes (e.g. device rotation), you must re-prepare all items.
 
 import type { Schema, SchemaChild } from './schema.js'
 
-// Type for react-native-text-size measure result
-export type RNTextMeasureResult = {
-  width: number
+// Users provide their own text measurement function.
+// The font parameter matches the schema text child's font string.
+export type RNTextMeasureFn = (text: string, font: string, maxWidth: number) => Promise<{
   height: number
   lineCount: number
-  lineHeight: number
-}
+}>
 
-// Type for the measure function — users provide their own implementation
-// since we don't want to depend on react-native-text-size directly
-export type RNTextMeasureFn = (text: string, font: string, maxWidth: number) => Promise<RNTextMeasureResult>
-
-// A lightweight prepared text handle for RN — stores the measured height
-// directly since we can't reuse Pretext's canvas-based PreparedText
-export type RNPreparedText = {
-  height: number
-  lineCount: number
-}
-
+// Stores pre-measured heights per text field
 export type RNPreparedItem = {
-  textFields: Map<string, RNPreparedText>
-  flexFields: Map<string, number[]>
+  /** Per-field measured heights (text fields store line-aware heights) */
+  childHeights: Map<string, number>
   data: Record<string, unknown>
+  preparedAtWidth: number
 }
 
 // --- Prepare (async) ---
@@ -49,22 +36,34 @@ export async function prepareItemRN(
   containerWidth: number,
   measureText: RNTextMeasureFn,
 ): Promise<RNPreparedItem> {
-  const textFields = new Map<string, RNPreparedText>()
-  const flexFields = new Map<string, number[]>()
+  const childHeights = new Map<string, number>()
   const [, pr, , pl] = schema.padding
   const contentWidth = Math.max(0, containerWidth - pl - pr)
 
-  await prepareChildRN(schema.children, data, contentWidth, measureText, textFields, flexFields)
-  return { textFields, flexFields, data }
+  await measureChildren(schema.children, data, contentWidth, schema, measureText, childHeights)
+  return { childHeights, data, preparedAtWidth: containerWidth }
 }
 
-async function prepareChildRN(
+export async function prepareItemsRN(
+  items: Record<string, unknown>[],
+  schema: Schema,
+  containerWidth: number,
+  measureText: RNTextMeasureFn,
+): Promise<RNPreparedItem[]> {
+  const results: RNPreparedItem[] = []
+  for (const item of items) {
+    results.push(await prepareItemRN(item, schema, containerWidth, measureText))
+  }
+  return results
+}
+
+async function measureChildren(
   children: SchemaChild[],
   data: Record<string, unknown>,
   contentWidth: number,
+  schema: Schema,
   measureText: RNTextMeasureFn,
-  textFields: Map<string, RNPreparedText>,
-  flexFields: Map<string, number[]>,
+  childHeights: Map<string, number>,
 ): Promise<void> {
   for (const child of children) {
     switch (child.type) {
@@ -72,15 +71,16 @@ async function prepareChildRN(
         const value = data[child.field]
         if (typeof value === 'string' && value.length > 0) {
           const result = await measureText(value, child.font, contentWidth)
-          textFields.set(child.field, {
-            height: result.height,
-            lineCount: result.lineCount,
-          })
+          let lineCount = result.lineCount
+          if (lineCount === 0) break
+          if (child.maxLines !== null) lineCount = Math.min(lineCount, child.maxLines)
+          childHeights.set(child.field, Math.max(lineCount * child.lineHeight, child.minHeight))
+        } else if (child.minHeight > 0) {
+          childHeights.set(child.field, child.minHeight)
         }
         break
       }
       case 'row': {
-        // For row children, we need to measure each cell at its specific width
         const totalGap = Math.max(0, child.children.length - 1) * child.gap
         let fixedWidth = totalGap
         let flexCount = 0
@@ -89,28 +89,28 @@ async function prepareChildRN(
           else fixedWidth += w
         }
         const flexWidth = flexCount > 0 ? Math.max(0, contentWidth - fixedWidth) / flexCount : 0
-
         for (let i = 0; i < child.children.length; i++) {
           const cellWidth = child.widths[i] === 'flex' ? flexWidth : (child.widths[i] as number)
-          await prepareChildRN([child.children[i]!], data, cellWidth, measureText, textFields, flexFields)
+          await measureChildren([child.children[i]!], data, cellWidth, schema, measureText, childHeights)
         }
         break
       }
       case 'group': {
         const [, pr, , pl] = child.padding
         const innerWidth = Math.max(0, contentWidth - pl - pr)
-        await prepareChildRN(child.children, data, innerWidth, measureText, textFields, flexFields)
+        await measureChildren(child.children, data, innerWidth, schema, measureText, childHeights)
         break
       }
       case 'conditional': {
         if (data[child.field]) {
-          await prepareChildRN([child.child], data, contentWidth, measureText, textFields, flexFields)
+          await measureChildren([child.child], data, contentWidth, schema, measureText, childHeights)
         }
         break
       }
       case 'flex-wrap':
       case 'aspect-ratio':
       case 'fixed':
+        // These are computed purely from schema + data in layoutItemRN
         break
     }
   }
@@ -120,11 +120,10 @@ async function prepareChildRN(
 
 export function layoutItemRN(
   prepared: RNPreparedItem,
-  containerWidth: number,
   schema: Schema,
 ): number {
   const [pt, pr, pb, pl] = schema.padding
-  const contentWidth = Math.max(0, containerWidth - pl - pr)
+  const contentWidth = Math.max(0, prepared.preparedAtWidth - pl - pr)
 
   let height = pt
   let visibleCount = 0
@@ -132,7 +131,6 @@ export function layoutItemRN(
   for (const child of schema.children) {
     const childHeight = layoutChildRN(child, prepared, contentWidth)
     if (childHeight === null) continue
-
     if (visibleCount > 0) height += schema.gap
     height += childHeight
     visibleCount++
@@ -152,30 +150,17 @@ function layoutChildRN(
       return child.height
 
     case 'text': {
-      const measured = prepared.textFields.get(child.field)
-      if (measured === undefined) {
-        return child.minHeight > 0 ? child.minHeight : null
-      }
-      if (measured.lineCount === 0) {
-        return child.minHeight > 0 ? child.minHeight : null
-      }
-      const lines = child.maxLines !== null ? Math.min(measured.lineCount, child.maxLines) : measured.lineCount
-      return Math.max(lines * child.lineHeight, child.minHeight)
+      const h = prepared.childHeights.get(child.field)
+      return h !== undefined ? h : (child.minHeight > 0 ? child.minHeight : null)
     }
 
     case 'flex-wrap': {
-      const itemWidths = prepared.flexFields.get(child.field)
-      if (itemWidths === undefined || itemWidths.length === 0) return null
-      let rowCount = 1
-      let rowWidth = 0
-      for (let i = 0; i < itemWidths.length; i++) {
-        const w = itemWidths[i]!
-        if (i === 0) { rowWidth = w; continue }
-        const nextWidth = rowWidth + child.columnGap + w
-        if (nextWidth > contentWidth) { rowCount++; rowWidth = w }
-        else { rowWidth = nextWidth }
-      }
-      return rowCount * child.itemHeight + Math.max(0, rowCount - 1) * child.rowGap
+      // flexWrap items aren't pre-measured in RN — fall back to single row estimate
+      const value = prepared.data[child.field]
+      if (!Array.isArray(value) || value.length === 0) return null
+      // Without canvas measurement we can't predict wrapping.
+      // Return single row as a conservative estimate.
+      return child.itemHeight
     }
 
     case 'aspect-ratio': {
@@ -243,7 +228,6 @@ export type GetItemLayoutResult = {
 export function buildGetItemLayout(
   heights: number[],
 ): (data: unknown, index: number) => GetItemLayoutResult {
-  // Pre-compute cumulative offsets
   const offsets: number[] = new Array(heights.length)
   let cumulative = 0
   for (let i = 0; i < heights.length; i++) {

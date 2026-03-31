@@ -210,27 +210,29 @@ const { virtualizer } = useVirtualLayout({
 Prelayout works in React Native with a custom text measurement function (since RN has no canvas):
 
 ```ts
-import { prepareItemRN, layoutItemRN, buildGetItemLayout } from 'prelayout/react-native'
-import { measure } from 'react-native-text-size'  // or your own native measurement
+import { prepareItemsRN, layoutItemRN, buildGetItemLayout } from 'prelayout/react-native'
 
-// Provide your own text measure function
+// Provide your own text measure function (e.g. using react-native-text-size)
 const measureText = async (text, font, maxWidth) => {
-  const result = await measure({ text, fontSize: 14, fontFamily: 'Inter', width: maxWidth })
-  return { width: result.width, height: result.height, lineCount: result.lineCount, lineHeight: 20 }
+  const fontSize = parseInt(font) || 14
+  const result = await measure({ text, fontSize, fontFamily: 'Inter', width: maxWidth })
+  return { height: result.height, lineCount: result.lineCount }
 }
 
-// Prepare is async (native bridge), layout is sync (pure arithmetic)
-const prepared = await prepareItemRN(item, schema, containerWidth, measureText)
-const height = layoutItemRN(prepared, containerWidth, schema)
+// Prepare is async (measures text via native bridge at a specific width)
+const prepared = await prepareItemsRN(items, schema, containerWidth, measureText)
 
-// FlatList integration via getItemLayout
-const heights = items.map(p => layoutItemRN(p, containerWidth, schema))
+// Layout is sync (pure arithmetic — sums prepared heights + padding/gaps)
+const heights = prepared.map(p => layoutItemRN(p, schema))
+
+// FlatList integration — enables instant scroll-to-index
 const getItemLayout = buildGetItemLayout(heights)
-
 <FlatList data={items} getItemLayout={getItemLayout} renderItem={...} />
 ```
 
-Same schema primitives as web — `fixed`, `text`, `row`, `flexWrap`, `aspectRatio`, `group`, `conditional` all work.
+**Important:** Unlike web, RN's `prepareItemRN()` bakes in the container width during measurement. If the width changes (e.g. device rotation), re-prepare all items.
+
+Same schema primitives as web — `fixed`, `text`, `row`, `aspectRatio`, `group`, `conditional` all work. `flexWrap` falls back to single-row estimate in RN (no canvas for tag width measurement).
 
 ## DevTools
 
