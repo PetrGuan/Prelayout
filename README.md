@@ -256,6 +256,122 @@ const { virtualizer } = useVirtualLayout({
 
 Each `createPrelayout()` call creates an independent cache — safe for multiple lists on the same page.
 
+## virtua Integration
+
+[virtua](https://github.com/inokawa/virtua) is a zero-config virtual list library for React/Vue/Solid/Svelte. Its `cache` prop accepts a `CacheSnapshot` at mount time — we feed it Prelayout's predicted heights so the list paints with exact sizes from the first frame.
+
+### React
+
+```tsx
+import { VList } from 'virtua'
+import { usePrelayoutVirtuaCache } from 'prelayout/react-virtua'
+
+function CommentList({ items, width }) {
+  const { cache, widthKey } = usePrelayoutVirtuaCache(items, commentSchema, width)
+
+  // Static mode — virtua's internal ResizeObserver tracks any post-mount resizes
+  return <VList cache={cache}>{(item, i) => <Comment item={item} />}</VList>
+
+  // Reset mode — force a remount when width changes
+  // return <VList key={widthKey} cache={cache}>{(item, i) => <Comment item={item} />}</VList>
+}
+```
+
+### Vue
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { VList } from 'virtua/vue'
+import { usePrelayoutVirtuaCache } from 'prelayout/vue-virtua'
+
+const items = ref([...])
+const width = ref(480)
+const { cache, widthKey } = usePrelayoutVirtuaCache(items, commentSchema, width)
+</script>
+
+<template>
+  <!-- static mode -->
+  <VList :cache="cache">...</VList>
+  <!-- reset mode -->
+  <VList :key="widthKey" :cache="cache">...</VList>
+</template>
+```
+
+### Solid
+
+```tsx
+import { createSignal } from 'solid-js'
+import { VList } from 'virtua/solid'
+import { createPrelayoutVirtuaCache } from 'prelayout/solid-virtua'
+
+const [items, setItems] = createSignal([...])
+const [width, setWidth] = createSignal(480)
+const { cache, widthKey } = createPrelayoutVirtuaCache(items, commentSchema, width)
+
+// static mode
+<VList cache={cache()}>...</VList>
+// reset mode
+<VList key={widthKey()} cache={cache()}>...</VList>
+```
+
+### Svelte 5
+
+```svelte
+<script>
+  import { VList } from 'virtua/svelte'
+  import { createPrelayoutVirtuaCache } from 'prelayout/svelte-virtua'
+
+  let items = $state([...])
+  let width = $state(480)
+  const factory = createPrelayoutVirtuaCache()
+  let result = $derived(factory.computeCache(items, commentSchema, width))
+</script>
+
+<!-- static mode -->
+<VList cache={result.cache}>...</VList>
+
+<!-- reset mode -->
+{#key result.widthKey}
+  <VList cache={result.cache}>...</VList>
+{/key}
+```
+
+### How it works
+
+`cache` is virtua's `CacheSnapshot` — an opaque value containing the predicted height for each item. virtua consumes it at mount time, so `getItemSize`, `scrollToIndex`, and the scrollbar are exact from the first paint.
+
+virtua's internal ResizeObserver still runs after mount. If a prediction is exact, the observer is a no-op. If your schema drifts slightly from CSS, virtua silently corrects the per-item size. If a prediction is badly wrong, the item will visibly snap to the real size — fix your schema.
+
+### Scroll position on reset mode
+
+Reset mode discards virtua's internal store (new mount, fresh state) so the scroll position resets to 0. To preserve it across width changes, snapshot the offset before remount and restore after:
+
+```tsx
+const ref = useRef<VirtualizerHandle>(null)
+const lastOffset = useRef(0)
+
+useEffect(() => {
+  return () => {
+    if (ref.current) lastOffset.current = ref.current.scrollOffset
+  }
+}, [widthKey])
+
+useLayoutEffect(() => {
+  if (ref.current && lastOffset.current) ref.current.scrollTo(lastOffset.current)
+}, [widthKey])
+
+<VList ref={ref} key={widthKey} cache={cache}>...</VList>
+```
+
+(Adapt per framework — the virtua handle exposes `scrollOffset` and `scrollTo` in all four bindings.)
+
+### Limitations
+
+- **Horizontal lists are not supported.** Prelayout predicts heights only. virtua's `horizontal: true` mode would need width prediction.
+- **VGrid is not supported in this release.** VGrid lacks a `cache` prop, and width prediction requires 2D schema support. Tracked as future work.
+- **`ssrCount` overrides cache for SSR.** If you also pass `ssrCount`, virtua renders that many items in SSR but still seeds the cache on hydration.
+
 ## React Native
 
 Prelayout works in React Native with a custom text measurement function (since RN has no canvas):
@@ -481,6 +597,18 @@ npm install prelayout @chenglou/pretext
 
 # React Native
 npm install prelayout @chenglou/pretext react-native-text-size
+
+# React + virtua
+npm install prelayout @chenglou/pretext virtua
+
+# Vue + virtua
+npm install prelayout @chenglou/pretext vue virtua
+
+# Solid + virtua
+npm install prelayout @chenglou/pretext solid-js virtua
+
+# Svelte + virtua
+npm install prelayout @chenglou/pretext svelte virtua
 ```
 
 ## Package Exports
@@ -496,6 +624,11 @@ npm install prelayout @chenglou/pretext react-native-text-size
 | `prelayout/vue` | `usePrelayout()` Vue 3 composable |
 | `prelayout/vue-virtual` | `useVirtualLayout()` for @tanstack/vue-virtual |
 | `prelayout/svelte` | `createPrelayout()`, `computeItemHeight()` for Svelte 5 runes |
+| `prelayout/solid` | `createPrelayout()`, `computeItemHeight()` for Solid signals |
+| `prelayout/react-virtua` | `usePrelayoutVirtuaCache()` for virtua (React) |
+| `prelayout/vue-virtua` | `usePrelayoutVirtuaCache()` for virtua (Vue) |
+| `prelayout/solid-virtua` | `createPrelayoutVirtuaCache()` for virtua (Solid) |
+| `prelayout/svelte-virtua` | `createPrelayoutVirtuaCache()` for virtua (Svelte 5) |
 | `prelayout/react-native` | `prepareItemRN()`, `prepareItemsRN()`, `layoutItemRN()`, `buildGetItemLayout()` |
 | `prelayout/ssr/predict` | `init()`, `predictHeight()`, `generateMediaQueryCSS()` — server-side height prediction (experimental, Latin-only) |
 | `prelayout/extract` | `fromCSS`, `fromTailwind` — also re-exported from `prelayout` |

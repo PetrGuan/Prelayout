@@ -61,6 +61,31 @@
       "import": "./dist/svelte.js",
       "default": "./dist/svelte.js"
     },
+    "./solid": {
+      "types": "./dist/solid.d.ts",
+      "import": "./dist/solid.js",
+      "default": "./dist/solid.js"
+    },
+    "./react-virtua": {
+      "types": "./dist/react-virtua.d.ts",
+      "import": "./dist/react-virtua.js",
+      "default": "./dist/react-virtua.js"
+    },
+    "./vue-virtua": {
+      "types": "./dist/vue-virtua.d.ts",
+      "import": "./dist/vue-virtua.js",
+      "default": "./dist/vue-virtua.js"
+    },
+    "./solid-virtua": {
+      "types": "./dist/solid-virtua.d.ts",
+      "import": "./dist/solid-virtua.js",
+      "default": "./dist/solid-virtua.js"
+    },
+    "./svelte-virtua": {
+      "types": "./dist/svelte-virtua.d.ts",
+      "import": "./dist/svelte-virtua.js",
+      "default": "./dist/svelte-virtua.js"
+    },
     "./ssr/predict": {
       "types": "./dist/ssr/index.d.ts",
       "import": "./dist/ssr/index.js",
@@ -85,7 +110,9 @@
     "react-native-text-size": ">=4.0.0",
     "react-window": ">=1.0.0",
     "svelte": ">=5.0.0",
-    "vue": ">=3.0.0"
+    "vue": ">=3.0.0",
+    "virtua": ">=0.40.0",
+    "solid-js": ">=1.8.0"
   },
   "peerDependenciesMeta": {
     "@tanstack/react-virtual": {
@@ -108,17 +135,29 @@
     },
     "svelte": {
       "optional": true
+    },
+    "virtua": {
+      "optional": true
+    },
+    "solid-js": {
+      "optional": true
     }
   },
   "devDependencies": {
     "@chenglou/pretext": "^0.0.3",
+    "@happy-dom/global-registrator": "^20.9.0",
     "@napi-rs/canvas": "^0.1.97",
     "@tanstack/react-virtual": "^3.13.9",
     "@tanstack/vue-virtual": "^3.13.23",
+    "@testing-library/react": "^16.3.2",
     "@types/bun": "latest",
     "@types/react": "^19.1.2",
-    "react": "^19.1.0",
+    "@types/react-dom": "^19.2.3",
+    "react": "19.2.6",
+    "react-dom": "^19.2.6",
+    "solid-js": "^1.9.13",
     "typescript": "6.0.2",
+    "virtua": "^0.49.1",
     "vue": "^3.5.31"
   }
 }
