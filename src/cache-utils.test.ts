@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { createVirtualStore } from 'virtua/unstable_core'
 import { buildCache, buildWidthKey } from './cache-utils.js'
 
 type VirtuaCacheTuple = [sizes: number[], defaultSize: number]
@@ -55,5 +56,27 @@ describe('buildWidthKey', () => {
 
   test('same inputs produce same key (stable hash)', () => {
     expect(buildWidthKey(480, 100, 'x')).toBe(buildWidthKey(480, 100, 'x'))
+  })
+})
+
+// ---- Contract test ----
+// Verifies our buildCache produces a value virtua's actual store accepts.
+// If virtua changes InternalCacheSnapshot shape upstream, this fails.
+
+describe('buildCache ↔ virtua contract', () => {
+  test('virtua store reflects predicted heights via getItemSize', () => {
+    const cache = buildCache([10, 20, 30])
+    // Args: elementsCount, itemSize, ssrCount, cacheSnapshot, shouldAutoEstimate
+    const store = createVirtualStore(3, 40, 0, cache)
+    expect(store.$getItemSize(0)).toBe(10)
+    expect(store.$getItemSize(1)).toBe(20)
+    expect(store.$getItemSize(2)).toBe(30)
+  })
+
+  test('empty cache + virtua store uses defaultSize for index lookups', () => {
+    const cache = buildCache([])
+    const store = createVirtualStore(3, 40, 0, cache)
+    // No sizes in cache → virtua falls back to its default (40 from buildCache).
+    expect(store.$getItemSize(0)).toBe(40)
   })
 })
