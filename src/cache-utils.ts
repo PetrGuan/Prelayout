@@ -10,9 +10,6 @@
 
 import type { CacheSnapshot } from 'virtua'
 
-/** virtua's internal cache shape — kept as a named type for clarity in tests. */
-export type VirtuaCacheTuple = [sizes: number[], defaultSize: number]
-
 /** Re-export so callers don't need a separate import. */
 export type { CacheSnapshot } from 'virtua'
 
@@ -30,7 +27,7 @@ export function buildCache(heights: number[]): CacheSnapshot {
     heights.length > 0
       ? heights.reduce((sum, h) => sum + h, 0) / heights.length
       : 40
-  const tuple: VirtuaCacheTuple = [heights.slice(), defaultSize]
+  const tuple: [number[], number] = [heights.slice(), defaultSize]
   return tuple as unknown as CacheSnapshot
 }
 

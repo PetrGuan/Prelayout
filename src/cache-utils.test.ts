@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { buildCache, buildWidthKey, type VirtuaCacheTuple } from './cache-utils.js'
+import { buildCache, buildWidthKey } from './cache-utils.js'
+
+type VirtuaCacheTuple = [sizes: number[], defaultSize: number]
 
 // Helper: peek into the opaque CacheSnapshot to assert the underlying tuple.
 const asTuple = (c: ReturnType<typeof buildCache>) => c as unknown as VirtuaCacheTuple
