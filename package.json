@@ -61,6 +61,31 @@
       "import": "./dist/svelte.js",
       "default": "./dist/svelte.js"
     },
+    "./solid": {
+      "types": "./dist/solid.d.ts",
+      "import": "./dist/solid.js",
+      "default": "./dist/solid.js"
+    },
+    "./react-virtua": {
+      "types": "./dist/react-virtua.d.ts",
+      "import": "./dist/react-virtua.js",
+      "default": "./dist/react-virtua.js"
+    },
+    "./vue-virtua": {
+      "types": "./dist/vue-virtua.d.ts",
+      "import": "./dist/vue-virtua.js",
+      "default": "./dist/vue-virtua.js"
+    },
+    "./solid-virtua": {
+      "types": "./dist/solid-virtua.d.ts",
+      "import": "./dist/solid-virtua.js",
+      "default": "./dist/solid-virtua.js"
+    },
+    "./svelte-virtua": {
+      "types": "./dist/svelte-virtua.d.ts",
+      "import": "./dist/svelte-virtua.js",
+      "default": "./dist/svelte-virtua.js"
+    },
     "./ssr/predict": {
       "types": "./dist/ssr/index.d.ts",
       "import": "./dist/ssr/index.js",
@@ -85,7 +110,9 @@
     "react-native-text-size": ">=4.0.0",
     "react-window": ">=1.0.0",
     "svelte": ">=5.0.0",
-    "vue": ">=3.0.0"
+    "vue": ">=3.0.0",
+    "virtua": ">=0.40.0",
+    "solid-js": ">=1.8.0"
   },
   "peerDependenciesMeta": {
     "@tanstack/react-virtual": {
@@ -107,6 +134,12 @@
       "optional": true
     },
     "svelte": {
+      "optional": true
+    },
+    "virtua": {
+      "optional": true
+    },
+    "solid-js": {
       "optional": true
     }
   },
